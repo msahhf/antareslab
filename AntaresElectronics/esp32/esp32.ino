@@ -47,7 +47,6 @@ String t_temp = "--";
 String t_hum = "--";
 String t_soil = "--";
 String t_heater = "--";
-String t_fanSly = "0";
 String t_fanDz = "0";
 String t_mode = "BEKLEMEDE";
 
@@ -657,7 +656,6 @@ static esp_err_t status_handler(httpd_req_t *req) {
   json += "\"temp\":\"" + t_temp + "\",";
   json += "\"hum\":\"" + t_hum + "\",";
   json += "\"soil\":\"" + t_soil + "\",";
-  json += "\"heater\":\"" + t_heater + "\",";
   json += "\"fanSly\":\"" + t_fanSly + "\",";
   json += "\"fanDz\":\"" + t_fanDz + "\",";
   json += "\"mode\":\"" + t_mode + "\"";
@@ -1156,7 +1154,6 @@ void loop() {
       int idx1 = line.indexOf(',');
       int idx2 = line.indexOf(',', idx1 + 1);
       int idx3 = line.indexOf(',', idx2 + 1);
-      int idx4 = line.indexOf(',', idx3 + 1);
       int idx5 = line.indexOf(',', idx4 + 1);
       int idx6 = line.indexOf(',', idx5 + 1);
       int idx7 = line.indexOf(',', idx6 + 1);
