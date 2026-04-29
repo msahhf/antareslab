@@ -1,0 +1,70 @@
+# AntaresStudio IoT - Project-wide .gitignore
+
+# --- Flutter (app/) ---
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.metadata
+app/.packages
+app/build/
+app/pubspec.lock
+app/.idea/
+app/*.iml
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+
+# --- Flutter Windows Specific ---
+app/windows/flutter/ephemeral/
+app/windows/CMakeLists.txt.user
+app/build/windows/
+
+# --- Arduino / ESP32 (firmware_*) ---
+**/build/
+**/libraries/
+**/*.bin
+**/*.hex
+**/*.elf
+**/*.map
+**/project.ino.cpp
+**/project.ino.elf
+**/project.ino.hex
+
+# --- Python Backend (backend/) ---
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/build/
+backend/dist/
+backend/*.spec
+
+# --- Setup & Build (setup_prep/) ---
+setup_prep/internal/app/
+setup_prep/internal/backend/
+setup_prep/output/
+setup_prep/*.exe
+setup_prep/*.msi
+
+# --- Windows System Files ---
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# --- Project Specific ---
+logs/
+*.log
+temp/
+C:\Users\MUHAMMET\.gemini\antigravity\brain\52977400-faa0-4593-ac25-cb374de91d82\technical_report_v4.md
+C:\Users\MUHAMMET\.gemini\antigravity\brain\52977400-faa0-4593-ac25-cb374de91d82\technical_report_v3.md

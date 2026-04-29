@@ -349,6 +349,11 @@ class UpdateManager {
     try {
       final url = 'http://$espHost/api/ota/arduino';
       final request = http.MultipartRequest('POST', Uri.parse(url));
+      
+      // CRC32 Hesapla (V3.0 Hardening)
+      final crc = _calculateCRC32(firmwareData);
+      request.headers['X-CRC32'] = crc.toRadixString(16).toUpperCase();
+
       request.files.add(http.MultipartFile.fromBytes(
         'firmware',
         firmwareData,
@@ -376,6 +381,22 @@ class UpdateManager {
       ));
       return false;
     }
+  }
+
+  /// Basit CRC32 Hesaplayıcı
+  int _calculateCRC32(Uint8List data) {
+    int crc = 0xFFFFFFFF;
+    for (final byte in data) {
+      crc ^= byte;
+      for (int i = 0; i < 8; i++) {
+        if ((crc & 1) != 0) {
+          crc = (crc >> 1) ^ 0xEDB88320;
+        } else {
+          crc >>= 1;
+        }
+      }
+    }
+    return crc ^ 0xFFFFFFFF;
   }
 
   // --------------------------------------------------------

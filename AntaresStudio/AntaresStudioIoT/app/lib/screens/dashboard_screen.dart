@@ -18,6 +18,7 @@ import '../theme/app_theme.dart';
 import '../widgets/data_card.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/status_indicator.dart' as si;
+import '../services/sync_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,6 +31,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  List<SDSession> _sdSessions = [];
+  bool _isSyncing = false;
 
   @override
   void initState() {
@@ -140,6 +143,14 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               // Hızlı Kontrol Butonları
               SliverToBoxAdapter(child: _buildQuickActions(device, scan)),
+
+              // SD Kart Geçmişi (Yeni v4.0)
+              if (device.espStatus?.sdActive == true) ...[
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader('SD KART GEÇMİŞİ', AntaresColors.warning),
+                ),
+                SliverToBoxAdapter(child: _buildSDHistoryTable(device)),
+              ],
 
               // Alt boşluk
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
@@ -399,41 +410,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                               },
                             ),
 
-                            // SD kart durumu overlay
-                            Positioned(
-                              top: 8,
-                              right: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.sd_card_rounded,
-                                      size: 12,
-                                      color: device.espStatus?.sdCard == true
-                                          ? AntaresColors.success
-                                          : AntaresColors.error,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      device.espStatus?.sdCard == true ? 'SD OK' : 'SD YOK',
-                                      style: const TextStyle(
-                                        color: AntaresColors.textSecondary,
-                                        fontSize: 10,
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
                             // Çözünürlük badge
                             Positioned(
                               bottom: 8,
@@ -446,7 +422,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  'AP: ${DeviceProvider.espHost}  |  1600×1200',
+                                  'IP: ${DeviceProvider.espHost}  |  UXGA 1600×1200',
                                   style: const TextStyle(
                                     color: AntaresColors.textDisabled,
                                     fontSize: 10,
@@ -636,7 +612,6 @@ class _DashboardScreenState extends State<DashboardScreen>
   Widget _buildSystemCard(DeviceProvider device) {
     final data = device.sensorData;
     final esp = device.espStatus;
-    final uptimeStr = _formatUptime(esp?.uptimeSec ?? 0);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -650,13 +625,13 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Column(
           children: [
             _buildSystemRow(
-                Icons.memory_rounded, 'Heap', _formatBytes(esp?.heapFree ?? 0)),
+                Icons.memory_rounded, 'Boş Heap', _formatBytes(esp?.heapFree ?? 0)),
             const SizedBox(height: 10),
             _buildSystemRow(
-                Icons.sd_storage_rounded, 'PSRAM', _formatBytes(esp?.psramFree ?? 0)),
+                Icons.wifi_rounded, 'WiFi İstemci', '${esp?.wifiClients ?? 0} Cihaz'),
             const SizedBox(height: 10),
             _buildSystemRow(
-                Icons.timer_rounded, 'Uptime', uptimeStr),
+                Icons.info_outline_rounded, 'Versiyon', 'Antares IoT v${esp?.version ?? "3.0"}'),
             const SizedBox(height: 10),
             _buildSystemRow(
                 Icons.rotate_right_rounded, 'Motor',
@@ -754,11 +729,13 @@ class _DashboardScreenState extends State<DashboardScreen>
               const SizedBox(width: 10),
               Expanded(
                 child: _buildActionButton(
-                  icon: Icons.sd_card_rounded,
-                  label: 'SD Kart\nAktarım',
-                  color: AntaresColors.warning,
-                  onTap: device.isConnected && !scan.isActive
-                      ? () => scan.transferFromSD()
+                  icon: Icons.sd_storage_rounded,
+                  label: 'SD Kart\nGeçmişi',
+                  color: device.espStatus?.sdActive == true 
+                      ? AntaresColors.warning 
+                      : AntaresColors.textDisabled,
+                  onTap: device.isConnected && device.espStatus?.sdActive == true
+                      ? () => _showSyncDialog(device)
                       : null,
                 ),
               ),
@@ -919,11 +896,60 @@ class _DashboardScreenState extends State<DashboardScreen>
     }
   }
 
-  String _formatUptime(int seconds) {
-    final hours = seconds ~/ 3600;
-    final minutes = (seconds % 3600) ~/ 60;
-    final secs = seconds % 60;
-    return '${hours}h ${minutes}m ${secs}s';
+
+
+  // ----------------------------------------------------------------
+  // SD Sync UI (v4.0)
+  // ----------------------------------------------------------------
+  
+  void _showSyncDialog(DeviceProvider device) async {
+    final sync = SyncService(espHost: DeviceProvider.espHost);
+    setState(() => _isSyncing = true);
+    final sessions = await sync.getSessions();
+    setState(() {
+      _sdSessions = sessions;
+      _isSyncing = false;
+    });
+  }
+
+  Widget _buildSDHistoryTable(DeviceProvider device) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: GlassCard(
+        padding: const EdgeInsets.all(0),
+        child: Column(
+          children: [
+            if (_sdSessions.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Kayıtlı oturum bulunamadı.', 
+                  style: TextStyle(color: AntaresColors.textDisabled)),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _sdSessions.length,
+                separatorBuilder: (_, __) => Divider(color: AntaresColors.border, height: 1),
+                itemBuilder: (context, index) {
+                  final s = _sdSessions[index];
+                  return ListTile(
+                    leading: const Icon(Icons.folder_open_rounded, color: AntaresColors.warning),
+                    title: Text(s.name, style: const TextStyle(color: AntaresColors.textPrimary, fontSize: 13)),
+                    subtitle: Text('${s.date} • ${s.status}', style: const TextStyle(color: AntaresColors.textDisabled, fontSize: 11)),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.download_for_offline_rounded, color: AntaresColors.success),
+                      onPressed: () {
+                        // Bulk download trigger
+                      },
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   String _formatBytes(int bytes) {

@@ -1,7 +1,7 @@
 name: antares_studio_iot
 description: AntaresStudio IoT - 3D Scanner Control App
 publish_to: 'none'
-version: 0.1.0+1
+version: 4.0.0
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -21,6 +21,9 @@ dependencies:
   
   # UI bileşenleri
   cupertino_icons: ^1.0.6
+  
+  # URL açma (güncelleme indirme)
+  url_launcher: ^6.2.0
   
   # mDNS cihaz keşfi (gelecekte eklenecek)
   # multicast_dns: ^0.3.2

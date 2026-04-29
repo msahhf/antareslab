@@ -12,6 +12,7 @@
 ///   - DeviceProvider: ESP32-CAM bağlantı ve sensör verileri
 ///   - ScanProvider:   Tarama orkestrasyon ve SD aktarım
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -22,12 +23,15 @@ import 'providers/scan_provider.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/update_screen.dart';
 import 'screens/three_d_view_screen.dart';
+import 'services/backend_process_manager.dart';
+import 'services/app_update_service.dart';
+import 'widgets/update_dialog.dart';
 
 // ============================================================
 // main()
 // ============================================================
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Sistem UI - Windows masaüstü
@@ -37,6 +41,11 @@ void main() {
     systemNavigationBarColor: AntaresColors.surface,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
+
+  // [Production] Windows'ta backend sürecini başlat
+  if (Platform.isWindows) {
+    await BackendProcessManager().startBackend();
+  }
 
   runApp(const AntaresStudioApp());
 }
@@ -103,11 +112,38 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
       CurvedAnimation(parent: _logoGlowController, curve: Curves.easeInOut),
     );
     _logoGlowController.repeat(reverse: true);
+
+    // [Production] Uygulama kapanışında backend'i sonlandır
+    if (Platform.isWindows) {
+      WidgetsBinding.instance.addObserver(_AppLifecycleObserver());
+    }
+
+    // [Auto-Update] Arka planda sürüm kontrolü
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkForAppUpdate();
+    });
+  }
+
+  /// Arka planda uygulama güncellemesini kontrol et
+  Future<void> _checkForAppUpdate() async {
+    try {
+      final service = AppUpdateService();
+      final versionInfo = await service.checkForUpdate();
+      service.dispose();
+
+      if (versionInfo != null && versionInfo.hasUpdate && mounted) {
+        await showUpdateDialog(context, versionInfo);
+      }
+    } catch (e) {
+      debugPrint('[AutoUpdate] Kontrol hatası: $e');
+    }
   }
 
   @override
   void dispose() {
     _logoGlowController.dispose();
+    // Backend'i temizle
+    BackendProcessManager().stopBackend();
     super.dispose();
   }
 
@@ -332,6 +368,19 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
         return 'FİRMWARE YÖNETİMİ';
       default:
         return '';
+    }
+  }
+}
+
+// ============================================================
+// App Lifecycle Observer (Backend Sonlandırma)
+// ============================================================
+
+class _AppLifecycleObserver extends WidgetsBindingObserver {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      BackendProcessManager().stopBackend();
     }
   }
 }

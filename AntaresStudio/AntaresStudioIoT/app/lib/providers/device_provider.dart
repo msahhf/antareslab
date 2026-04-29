@@ -89,17 +89,14 @@ class DeviceProvider extends ChangeNotifier {
           // Başarılı bağlantı
           _espStatus = status;
           _connectionState = DeviceConnectionState.connected;
-          _firmwareVersion = status.firmware;
+          _firmwareVersion = status.version;
           _statusMessage = 'Kapsüle bağlandı';
           _retryCount = 0;
           _consecutiveFailures = 0;
 
           // Arduino sensör verilerini al
-          final ardData = await _esp32.getArduinoStatus();
-          if (ardData != null) {
-            _sensorData = ardData;
-            _addToHistory(ardData);
-          }
+          _sensorData = status.arduino;
+          _addToHistory(_sensorData);
 
           _startPolling();
           notifyListeners();
@@ -137,11 +134,8 @@ class DeviceProvider extends ChangeNotifier {
           _espStatus = status;
 
           // Arduino sensör verileri
-          final ardData = await _esp32.getArduinoStatus();
-          if (ardData != null) {
-            _sensorData = ardData;
-            _addToHistory(ardData);
-          }
+          _sensorData = status.arduino;
+          _addToHistory(_sensorData);
 
           // Bağlantı geri geldi
           _consecutiveFailures = 0;
@@ -177,7 +171,7 @@ class DeviceProvider extends ChangeNotifier {
         if (status != null) {
           _espStatus = status;
           _connectionState = DeviceConnectionState.connected;
-          _firmwareVersion = status.firmware;
+          _firmwareVersion = status.version;
           _statusMessage = 'Kapsüle yeniden bağlandı';
           _consecutiveFailures = 0;
           _reconnectTimer?.cancel();

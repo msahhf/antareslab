@@ -1,32 +1,27 @@
-"""
-AntaresStudio IoT - Python Backend v2.1
-
-Fotogrametri pipeline:
-  1. ESP32-CAM'den JPEG fotoğrafları alır
-  2. rembg ile arka planı temizler (batch, session-bazlı model paylaşımı)
-  3. Meshroom CLI ile 3D model üretir (asenkron, ilerleme takipli)
-  4. trimesh ile model decimation + .glb format dönüşümü
-  5. Otomatik cache cleanup (GB'larca geçici dosya silinir)
-"""
+# AntaresStudio IoT - Python Backend v2.1
+#
+# Fotogrametri pipeline:
+#   1. ESP32-CAM'den JPEG fotograflari alir
+#   2. rembg ile arka plani temizler (batch, session-bazli model paylasimi)
+#   3. Meshroom CLI ile 3D model uretir (asenkron, ilerleme takipli)
+#   4. trimesh ile model decimation + .glb format donusumu
+#   5. Otomatik cache cleanup (GB'larca gecici dosya silinir)
 
 # Backend
 fastapi>=0.109.0
 uvicorn[standard]>=0.27.0
 python-multipart>=0.0.9
 
-# Görüntü İşleme
+# Goruntu Isleme
 rembg>=2.0.50
 Pillow>=10.2.0
 numpy>=1.26.0
 
-# 3D Model İşleme (Decimation + Format Dönüşüm)
+# 3D Model Isleme (Decimation + Format Donusum)
 trimesh>=4.0.0
-pyglet>=2.0.0          # trimesh glb/gltf dışa aktarma için
+pyglet>=2.0.0
 
-# Meshroom CLI entegrasyonu
-# Meshroom kendi kurulumunu gerektirir (ayrıca indirilir)
-
-# Yardımcı
+# Yardimci
 pydantic>=2.5.0
 pydantic-settings>=2.0.0
 aiofiles>=23.2.0

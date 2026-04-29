@@ -25,7 +25,6 @@ enum ScanState {
   homing,            // Motor Home
   scanning,          // Fotoğraf + döndürme döngüsü
   paused,            // [2] Bağlantı kesildi, tarama duraklatıldı
-  transferring,      // SD karttan aktarım
   uploading,         // Backend'e yükleme
   cleaning,          // rembg arka plan temizleme
   pipelineRunning,   // [5] Meshroom pipeline çalışıyor
@@ -58,11 +57,6 @@ class ScanProvider extends ChangeNotifier {
   // --- Çekilen fotoğraflar ---
   final List<Uint8List> _capturedPhotos = [];
 
-  // --- SD karttan indirilen fotoğraflar ---
-  final List<Uint8List> _sdPhotos = [];
-  int _sdTransferCurrent = 0;
-  int _sdTransferTotal = 0;
-
   // [5] Pipeline durumu
   String? _pipelineId;
   PipelineStatus? _pipelineStatus;
@@ -81,9 +75,6 @@ class ScanProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get sessionId => _sessionId;
   List<Uint8List> get capturedPhotos => List.unmodifiable(_capturedPhotos);
-  List<Uint8List> get sdPhotos => List.unmodifiable(_sdPhotos);
-  int get sdTransferCurrent => _sdTransferCurrent;
-  int get sdTransferTotal => _sdTransferTotal;
   PipelineStatus? get pipelineStatus => _pipelineStatus;
   bool get isActive => _state != ScanState.idle &&
       _state != ScanState.completed &&
@@ -244,48 +235,8 @@ class ScanProvider extends ChangeNotifier {
   }
 
   // ============================================================
-  // SD Kart Aktarım
+  // SD Kart Aktarım (V3.0: Devre dışı - Direct Transfer Kullanılıyor)
   // ============================================================
-
-  /// SD karttaki tüm fotoğrafları indir ve sil
-  Future<void> transferFromSD() async {
-    if (isActive) return;
-
-    _sdPhotos.clear();
-    _errorMessage = null;
-
-    try {
-      _setState(ScanState.transferring, 'SD kart okunuyor...');
-
-      final photos = await _esp32.listSDPhotos();
-      if (photos.isEmpty) {
-        _setState(ScanState.completed, 'SD kartta fotoğraf yok.');
-        return;
-      }
-
-      _sdTransferTotal = photos.length;
-      _totalSteps = photos.length;
-
-      for (int i = 0; i < photos.length; i++) {
-        _sdTransferCurrent = i + 1;
-        _currentStep = i + 1;
-        _statusMessage =
-            '${photos[i].name} indiriliyor (${i + 1}/${photos.length})...';
-        notifyListeners();
-
-        final data = await _esp32.downloadSDPhoto(photos[i].name);
-        if (data != null) {
-          _sdPhotos.add(data);
-          await _esp32.deleteSDPhoto(photos[i].name);
-        }
-      }
-
-      _setState(ScanState.completed,
-          '${_sdPhotos.length} fotoğraf aktarıldı ve SD karttan silindi.');
-    } catch (e) {
-      _setError('SD aktarım hatası: $e');
-    }
-  }
 
   // ============================================================
   // Backend'e Yükleme

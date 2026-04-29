@@ -53,54 +53,34 @@ class ArduinoCommandResult {
   }
 }
 
-/// ESP32 durum bilgisi — [2] genişletilmiş
+/// ESP32 durum bilgisi — [v3.0]
 class ESP32Status {
-  final String firmware;
-  final String ip;
-  final int clients;
-  final bool bridgeMode;
-  final bool sdCard;
-  final int sdErrors;          // [2] SD ardışık hata sayısı
+  final String version;
   final int heapFree;
-  final int psramFree;
-  final int uptimeSec;
-  final int jpegQuality;       // [1] Kamera kalitesi (0-63)
-  final int frameSize;         // [1] Kamera çözünürlüğü
-  final int stabilizationMs;   // [1] Motor stabilizasyon süresi
+  final int wifiClients;
+  final ArduinoSensorData arduino;
+  final CameraSettings camera;
+  final bool sdActive;
 
   ESP32Status({
-    required this.firmware,
-    required this.ip,
-    required this.clients,
-    required this.bridgeMode,
-    required this.sdCard,
-    this.sdErrors = 0,
+    required this.version,
     required this.heapFree,
-    required this.psramFree,
-    required this.uptimeSec,
-    this.jpegQuality = 10,
-    this.frameSize = 13,
-    this.stabilizationMs = 800,
+    required this.wifiClients,
+    required this.arduino,
+    required this.camera,
+    required this.sdActive,
   });
 
   factory ESP32Status.fromJson(Map<String, dynamic> json) {
     return ESP32Status(
-      firmware: json['firmware'] ?? '--',
-      ip: json['ip'] ?? '192.168.4.1',
-      clients: json['clients'] ?? 0,
-      bridgeMode: json['bridge_mode'] ?? false,
-      sdCard: json['sd_card'] ?? false,
-      sdErrors: json['sd_errors'] ?? 0,
-      heapFree: json['heap_free'] ?? 0,
-      psramFree: json['psram_free'] ?? 0,
-      uptimeSec: json['uptime_sec'] ?? 0,
-      jpegQuality: json['jpeg_quality'] ?? 10,
-      frameSize: json['frame_size'] ?? 13,
-      stabilizationMs: json['stabilization_ms'] ?? 800,
+      version: json['version'] ?? '3.0.0',
+      heapFree: json['heap'] ?? 0,
+      wifiClients: json['wifi_clients'] ?? 0,
+      arduino: ArduinoSensorData.fromJson(json['arduino'] ?? {}),
+      camera: CameraSettings.fromJson(json['camera'] ?? {}),
+      sdActive: json['sd_active'] ?? false,
     );
   }
-
-  bool get sdHealthy => sdCard && sdErrors == 0;
 }
 
 /// Arduino sensör verileri
@@ -212,17 +192,10 @@ class ESP32Service {
     return null;
   }
 
-  /// Arduino sensör verileri
+  /// Arduino sensör verilerini (Status içinden veya direkt)
   Future<ArduinoSensorData?> getArduinoStatus() async {
-    try {
-      final response = await _client
-          .get(Uri.parse('$_baseUrl/api/arduino/status'))
-          .timeout(_timeout);
-      if (response.statusCode == 200) {
-        return ArduinoSensorData.fromJson(jsonDecode(response.body));
-      }
-    } catch (_) {}
-    return null;
+    final status = await getStatus();
+    return status?.arduino;
   }
 
   /// Bağlantı kontrolü
@@ -273,11 +246,7 @@ class ESP32Service {
   Future<CameraSettings?> getCameraSettings() async {
     final status = await getStatus();
     if (status == null) return null;
-    return CameraSettings(
-      quality: status.jpegQuality,
-      frameSize: status.frameSize,
-      stabilizationMs: status.stabilizationMs,
-    );
+    return status.camera;
   }
 
   // ---- Arduino Komut ----
@@ -333,75 +302,7 @@ class ESP32Service {
     return result?.success ?? false;
   }
 
-  // ---- SD Kart ----
-
-  /// SD karttaki fotoğrafları listele
-  Future<List<SDPhoto>> listSDPhotos() async {
-    try {
-      final response = await _client
-          .get(Uri.parse('$_baseUrl/api/sd/list'))
-          .timeout(_timeout);
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        // [4] SD hata kontrolü
-        if (json.containsKey('error')) {
-          print('[ESP32Service] SD Hata: ${json['error']}');
-          return [];
-        }
-        final photos = (json['photos'] as List<dynamic>?) ?? [];
-        return photos.map((p) => SDPhoto.fromJson(p)).toList();
-      }
-    } catch (_) {}
-    return [];
-  }
-
-  /// SD karttan fotoğraf indir
-  Future<Uint8List?> downloadSDPhoto(String name) async {
-    try {
-      final response = await _client
-          .get(Uri.parse('$_baseUrl/api/sd/photo?name=$name'))
-          .timeout(const Duration(seconds: 30));
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  /// SD karttan fotoğraf sil
-  Future<bool> deleteSDPhoto(String name) async {
-    try {
-      final response = await _client
-          .delete(Uri.parse('$_baseUrl/api/sd/photo?name=$name'))
-          .timeout(_timeout);
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        return json['success'] == true;
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  /// Tüm SD fotoğraflarını indir ve sil (toplu aktarım)
-  Future<List<Uint8List>> transferAllFromSD({
-    void Function(int index, int total, String name)? onProgress,
-  }) async {
-    final photos = await listSDPhotos();
-    final results = <Uint8List>[];
-
-    for (int i = 0; i < photos.length; i++) {
-      final photo = photos[i];
-      onProgress?.call(i + 1, photos.length, photo.name);
-
-      final data = await downloadSDPhoto(photo.name);
-      if (data != null) {
-        results.add(data);
-        await deleteSDPhoto(photo.name);
-      }
-    }
-
-    return results;
-  }
+  // ---- SD Kart (V3.0: Kaldırıldı - High Speed Direct Transfer Kullanın) ----
 
   // ---- OTA Firmware ----
 
