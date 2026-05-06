@@ -4,7 +4,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../theme/antares_theme.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -34,13 +34,13 @@ class GlassCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AntaresColors.surfaceLight.withOpacity(0.6),
+                AntaresColors.surfaceVariant.withOpacity(0.6),
                 AntaresColors.surface.withOpacity(0.4),
               ],
             ),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: borderColor ?? AntaresColors.border.withOpacity(0.5),
+              color: borderColor ?? AntaresColors.borderHighlight.withOpacity(0.4),
               width: 1,
             ),
           ),

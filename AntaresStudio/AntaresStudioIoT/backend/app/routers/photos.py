@@ -6,6 +6,7 @@ Fotoğraf yükleme ve rembg ile arka plan temizleme endpoint'leri.
 
 import uuid
 import time
+import logging
 from pathlib import Path
 from typing import Optional
 
@@ -17,9 +18,19 @@ from app.services.rembg_service import RembgService
 
 router = APIRouter()
 rembg_service = RembgService()
+logger = logging.getLogger("antares.photos")
 
 # Oturum bazlı fotoğraf takibi
 sessions: dict = {}
+
+# Dashboard log helper (imported from main in actual call)
+def add_dashboard_log(message: str, level: str = "INFO"):
+    """Add log to dashboard if available."""
+    try:
+        from app.main import add_system_log
+        add_system_log(message, level)
+    except ImportError:
+        pass  # Dashboard not initialized yet
 
 
 @router.post("/upload")
@@ -78,6 +89,12 @@ async def upload_photo(
         "size_bytes": len(content),
         "path": str(filepath),
     })
+    
+    # Log to dashboard
+    add_dashboard_log(
+        f"Photo uploaded: {session_id}/{filename} ({size_mb:.1f} MB)", 
+        "SUCCESS"
+    )
     
     return {
         "success": True,

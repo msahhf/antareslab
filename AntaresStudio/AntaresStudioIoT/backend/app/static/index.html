@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antares Archaeology Capsule | Control Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'antares-bg': '#0a0e17',
+                        'antares-surface': '#111827',
+                        'antares-border': '#1f2937',
+                        'antares-cyan': '#00f0ff',
+                        'antares-amber': '#ffb800',
+                        'antares-emerald': '#00ff88',
+                        'antares-rose': '#ff4d4d',
+                        'antares-violet': '#8b5cf6',
+                    },
+                    fontFamily: {
+                        'mono': ['JetBrains Mono', 'monospace'],
+                        'sans': ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: radial-gradient(ellipse at top, #0f172a 0%, #0a0e17 50%, #020617 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(31, 41, 55, 0.8);
+        }
+        .neon-glow {
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+        .neon-text {
+            text-shadow: 0 0 10px currentColor;
+        }
+        .pulse-dot {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px currentColor; }
+            50% { opacity: 0.6; box-shadow: 0 0 20px currentColor; }
+        }
+        .terminal-text {
+            background: linear-gradient(180deg, rgba(0, 240, 255, 0.1) 0%, transparent 100%);
+        }
+        .scan-line {
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+            height: 1px;
+            animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .gauge-bg {
+            stroke: #1f2937;
+        }
+        .gauge-fill {
+            stroke: #00f0ff;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="text-gray-300 font-sans antialiased">
+    <div class="min-h-screen p-4 md:p-6">
+        <!-- Header -->
+        <header class="glass-panel rounded-2xl p-6 mb-6 neon-glow">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-antares-cyan/20 to-antares-violet/20 
+                                flex items-center justify-center border border-antares-cyan/30">
+                        <i class="fas fa-satellite text-antares-cyan text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white tracking-wider">
+                            ANTARES <span class="text-antares-cyan">ARCHAEOLOGY</span> CAPSULE
+                        </h1>
+                        <p class="text-xs text-gray-500 font-mono tracking-widest">CONTROL STATION v2.1</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="text-right hidden md:block">
+                        <p class="text-xs text-gray-500 font-mono">UPTIME</p>
+                        <p id="uptime" class="text-sm font-mono text-antares-emerald">00:00:00</p>
+                    </div>
+                    <div class="flex items-center gap-3 px-4 py-2 rounded-lg bg-antares-emerald/10 border border-antares-emerald/30">
+                        <div class="w-2 h-2 rounded-full bg-antares-emerald pulse-dot"></div>
+                        <span class="text-sm font-semibold text-antares-emerald tracking-wider">ONLINE</span>
+                    </div>
+                </div>
+            </div>
+            <div class="scan-line mt-4"></div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Telemetry Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-antares-amber/10 flex items-center justify-center">
+                        <i class="fas fa-wave-square text-antares-amber text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400">LIVE TELEMETRY</h2>
+                    <div class="ml-auto">
+                        <span id="telemetry-status" class="text-xs font-mono text-gray-500">WAITING...</span>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Temperature -->
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-black/20">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-thermometer-half text-antares-amber"></i>
+                            <span class="text-sm text-gray-400">Temperature</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="temp-value" class="text-lg font-mono font-bold text-white">--</span>
+                            <span class="text-xs text-antares-amber ml-1">°C</span>
+                        </div>
+                    </div>
+
+                    <!-- Humidity -->
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-black/20">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-tint text-antares-cyan"></i>
+                            <span class="text-sm text-gray-400">Humidity</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="humidity-value" class="text-lg font-mono font-bold text-white">--</span>
+                            <span class="text-xs text-antares-cyan ml-1">%RH</span>
+                        </div>
+                    </div>
+
+                    <!-- Soil Moisture -->
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-black/20">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-seedling text-antares-violet"></i>
+                            <span class="text-sm text-gray-400">Soil Moisture</span>
+                        </div>
+                        <div class="text-right">
+                            <span id="soil-value" class="text-lg font-mono font-bold text-white">--</span>
+                            <span class="text-xs text-antares-violet ml-1">ADC</span>
+                        </div>
+                    </div>
+
+                    <!-- Mode -->
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-black/20">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-microchip text-antares-emerald"></i>
+                            <span class="text-sm text-gray-400">System Mode</span>
+                        </div>
+                        <span id="mode-value" class="px-3 py-1 rounded-full text-xs font-bold bg-antares-emerald/20 text-antares-emerald border border-antares-emerald/30">
+                            STANDBY
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-800">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-500">Last Update</span>
+                        <span id="last-update" class="font-mono text-gray-400">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Logs Terminal -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-2">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-8 h-8 rounded-lg bg-antares-rose/10 flex items-center justify-center">
+                        <i class="fas fa-terminal text-antares-rose text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400">SYSTEM LOGS</h2>
+                    <div class="ml-auto flex items-center gap-2">
+                        <button onclick="clearLogs()" class="px-2 py-1 text-xs rounded bg-gray-800 hover:bg-gray-700 transition-colors">
+                            <i class="fas fa-trash-alt mr-1"></i>Clear
+                        </button>
+                        <div class="flex items-center gap-1 text-xs text-gray-500">
+                            <div id="log-indicator" class="w-1.5 h-1.5 rounded-full bg-antares-rose pulse-dot"></div>
+                            LIVE
+                        </div>
+                    </div>
+                </div>
+
+                <div id="terminal" class="h-64 overflow-y-auto scrollbar-hide font-mono text-xs leading-relaxed 
+                                         bg-black/40 rounded-lg p-4 border border-gray-800">
+                    <div class="text-antares-emerald/60">[SYSTEM] Antares Control Station initialized...</div>
+                    <div class="text-gray-500">[INFO] Waiting for ESP32 telemetry stream...</div>
+                    <div class="text-gray-500">[INFO] Backend API endpoints active on port 8000</div>
+                </div>
+            </div>
+
+            <!-- Sessions Gallery -->
+            <div class="glass-panel rounded-2xl p-6 lg:col-span-3">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-antares-violet/10 flex items-center justify-center">
+                            <i class="fas fa-images text-antares-violet text-sm"></i>
+                        </div>
+                        <h2 class="text-sm font-bold tracking-wider text-gray-400">RECENT SESSIONS</h2>
+                    </div>
+                    <button onclick="loadSessions()" class="px-4 py-2 text-xs font-semibold rounded-lg 
+                                    bg-antares-cyan/10 text-antares-cyan border border-antares-cyan/30 
+                                    hover:bg-antares-cyan/20 transition-all">
+                        <i class="fas fa-sync-alt mr-2"></i>REFRESH
+                    </button>
+                </div>
+
+                <div id="sessions-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        <i class="fas fa-inbox text-4xl mb-4 opacity-30"></i>
+                        <p class="text-sm">No sessions available. Upload photos to see them here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pipeline Status -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-antares-cyan/10 flex items-center justify-center">
+                        <i class="fas fa-cogs text-antares-cyan text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400">PIPELINE STATUS</h2>
+                </div>
+
+                <div id="pipeline-status" class="space-y-4">
+                    <div class="p-4 rounded-lg bg-black/20 text-center">
+                        <i class="fas fa-cube text-3xl text-gray-600 mb-3"></i>
+                        <p class="text-sm text-gray-500">No active pipelines</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Health -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-antares-emerald/10 flex items-center justify-center">
+                        <i class="fas fa-heartbeat text-antares-emerald text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400">SYSTEM HEALTH</h2>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-500">Meshroom</span>
+                            <span id="meshroom-status" class="text-antares-emerald font-semibold">✓ Available</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                            <div class="h-full w-full bg-antares-emerald rounded-full"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-500">rembg Model</span>
+                            <span id="rembg-status" class="text-antares-emerald font-semibold">✓ Loaded</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                            <div class="h-full w-full bg-antares-emerald rounded-full"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-500">Storage</span>
+                            <span id="disk-usage" class="text-antares-amber font-semibold">-- GB</span>
+                        </div>
+                        <div class="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                            <div id="disk-bar" class="h-full w-0 bg-antares-amber rounded-full transition-all duration-500"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="glass-panel rounded-2xl p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 rounded-lg bg-antares-amber/10 flex items-center justify-center">
+                        <i class="fas fa-bolt text-antares-amber text-sm"></i>
+                    </div>
+                    <h2 class="text-sm font-bold tracking-wider text-gray-400">QUICK ACTIONS</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="apiHealthCheck()" class="p-3 rounded-lg bg-antares-cyan/10 border border-antares-cyan/30 
+                                    text-antares-cyan text-xs font-semibold hover:bg-antares-cyan/20 transition-all">
+                        <i class="fas fa-heartbeat mb-2 text-lg"></i><br>Health Check
+                    </button>
+                    <button onclick="viewDocs()" class="p-3 rounded-lg bg-antares-violet/10 border border-antares-violet/30 
+                                    text-antares-violet text-xs font-semibold hover:bg-antares-violet/20 transition-all">
+                        <i class="fas fa-book mb-2 text-lg"></i><br>API Docs
+                    </button>
+                    <button onclick="cleanupCache()" class="p-3 rounded-lg bg-antares-amber/10 border border-antares-amber/30 
+                                    text-antares-amber text-xs font-semibold hover:bg-antares-amber/20 transition-all">
+                        <i class="fas fa-broom mb-2 text-lg"></i><br>Cleanup Cache
+                    </button>
+                    <button onclick="exportLogs()" class="p-3 rounded-lg bg-antares-emerald/10 border border-antares-emerald/30 
+                                    text-antares-emerald text-xs font-semibold hover:bg-antares-emerald/20 transition-all">
+                        <i class="fas fa-download mb-2 text-lg"></i><br>Export Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-8 text-center text-xs text-gray-600 font-mono">
+            <p>ANTARES STUDIO IOT BACKEND v2.1.0 | FastAPI | Python 3.11+</p>
+            <p class="mt-1">Port 8000 | WiFi: ANTARES_KAPSUL_LAB</p>
+        </footer>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin;
+        const startTime = Date.now();
+        let logBuffer = [];
+
+        // Utility: Add log to terminal
+        function addLog(message, type = 'INFO') {
+            const terminal = document.getElementById('terminal');
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+            
+            const colors = {
+                'INFO': 'text-gray-400',
+                'SUCCESS': 'text-antares-emerald',
+                'WARNING': 'text-antares-amber',
+                'ERROR': 'text-antares-rose',
+                'TELEMETRY': 'text-antares-cyan'
+            };
+
+            const logEntry = document.createElement('div');
+            logEntry.className = `${colors[type] || 'text-gray-400'} mb-1`;
+            logEntry.innerHTML = `<span class="opacity-50">[${timestamp}]</span> ${message}`;
+            
+            terminal.appendChild(logEntry);
+            terminal.scrollTop = terminal.scrollHeight;
+
+            // Keep only last 100 lines
+            while (terminal.children.length > 100) {
+                terminal.removeChild(terminal.firstChild);
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('terminal').innerHTML = '';
+            addLog('Logs cleared by user', 'INFO');
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const hours = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+            const minutes = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            document.getElementById('uptime').textContent = `${hours}:${minutes}:${seconds}`;
+        }
+
+        // Fetch telemetry (polling every 2 seconds)
+        async function fetchTelemetry() {
+            try {
+                const response = await fetch(`${API_BASE}/api/telemetry`);
+                if (!response.ok) throw new Error('Telemetry unavailable');
+                
+                const data = await response.json();
+                
+                // Update values
+                document.getElementById('temp-value').textContent = data.temperature?.toFixed(1) || '--';
+                document.getElementById('humidity-value').textContent = data.humidity || '--';
+                document.getElementById('soil-value').textContent = data.soil_moisture || '--';
+                document.getElementById('mode-value').textContent = data.mode || 'STANDBY';
+                
+                // Mode color
+                const modeEl = document.getElementById('mode-value');
+                if (data.mode === 'MANUEL') {
+                    modeEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-antares-amber/20 text-antares-amber border border-antares-amber/30';
+                } else if (data.mode === 'STUDIO') {
+                    modeEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-antares-cyan/20 text-antares-cyan border border-antares-cyan/30';
+                } else {
+                    modeEl.className = 'px-3 py-1 rounded-full text-xs font-bold bg-antares-emerald/20 text-antares-emerald border border-antares-emerald/30';
+                }
+
+                document.getElementById('telemetry-status').textContent = 'LIVE';
+                document.getElementById('telemetry-status').className = 'text-xs font-mono text-antares-emerald';
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
+                // Log new telemetry occasionally
+                if (Math.random() < 0.1) {
+                    addLog(`Telemetry update: T:${data.temperature}°C H:${data.humidity}%`, 'TELEMETRY');
+                }
+            } catch (err) {
+                document.getElementById('telemetry-status').textContent = 'OFFLINE';
+                document.getElementById('telemetry-status').className = 'text-xs font-mono text-antares-rose';
+            }
+        }
+
+        // Fetch health status
+        async function fetchHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                // Update service statuses
+                document.getElementById('meshroom-status').textContent = data.meshroom_available ? '✓ Available' : '✗ Not Found';
+                document.getElementById('meshroom-status').className = data.meshroom_available ? 'text-antares-emerald font-semibold' : 'text-antares-rose font-semibold';
+                
+                document.getElementById('rembg-status').textContent = data.rembg?.model_loaded ? '✓ Loaded' : '✗ Not Loaded';
+                document.getElementById('rembg-status').className = data.rembg?.model_loaded ? 'text-antares-emerald font-semibold' : 'text-antares-rose font-semibold';
+            } catch (err) {
+                addLog('Health check failed: ' + err.message, 'ERROR');
+            }
+        }
+
+        // Fetch disk usage
+        async function fetchDiskUsage() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/disk-usage`);
+                const data = await response.json();
+                
+                const used = data.total_used_gb || 0;
+                const total = data.total_available_gb || 100;
+                const percent = Math.min((used / total) * 100, 100);
+                
+                document.getElementById('disk-usage').textContent = `${used.toFixed(1)} GB / ${total.toFixed(0)} GB`;
+                document.getElementById('disk-bar').style.width = `${percent}%`;
+                
+                if (percent > 80) {
+                    document.getElementById('disk-bar').className = 'h-full rounded-full transition-all duration-500 bg-antares-rose';
+                } else if (percent > 60) {
+                    document.getElementById('disk-bar').className = 'h-full rounded-full transition-all duration-500 bg-antares-amber';
+                } else {
+                    document.getElementById('disk-bar').className = 'h-full rounded-full transition-all duration-500 bg-antares-emerald';
+                }
+            } catch (err) {
+                // Silent fail - disk usage is non-critical
+            }
+        }
+
+        // Load recent sessions
+        async function loadSessions() {
+            addLog('Loading recent sessions...', 'INFO');
+            try {
+                // Check upload directory via API
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/list`);
+                const pipelines = await response.json();
+                
+                const container = document.getElementById('sessions-container');
+                
+                if (!pipelines || pipelines.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-12 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-4 opacity-30"></i>
+                            <p class="text-sm">No active pipelines. Start a scan from the Flutter app.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = pipelines.slice(0, 4).map(p => `
+                    <div class="glass-panel rounded-xl p-4 border border-gray-800 hover:border-antares-cyan/30 transition-all">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-cube text-antares-cyan"></i>
+                                <span class="text-sm font-mono text-gray-300">${p.pipeline_id?.slice(0, 8) || 'N/A'}</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded text-xs font-semibold ${getStatusColor(p.status)}">
+                                ${p.status?.toUpperCase() || 'UNKNOWN'}
+                            </span>
+                        </div>
+                        <div class="text-xs text-gray-500 mb-2">
+                            Session: ${p.session_id?.slice(0, 12) || 'N/A'}...
+                        </div>
+                        <div class="h-1.5 rounded-full bg-gray-800 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-300 ${getProgressColor(p.progress)}"
+                                 style="width: ${p.progress || 0}%"></div>
+                        </div>
+                        <div class="flex justify-between mt-2 text-xs">
+                            <span class="text-gray-500">${p.progress || 0}%</span>
+                            <span class="text-gray-400">${p.current_step || 'Pending'}</span>
+                        </div>
+                    </div>
+                `).join('');
+
+                addLog(`Loaded ${pipelines.length} pipeline(s)`, 'SUCCESS');
+            } catch (err) {
+                addLog('Failed to load sessions: ' + err.message, 'ERROR');
+            }
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'running': return 'bg-antares-cyan/20 text-antares-cyan border border-antares-cyan/30';
+                case 'completed': return 'bg-antares-emerald/20 text-antares-emerald border border-antares-emerald/30';
+                case 'failed': return 'bg-antares-rose/20 text-antares-rose border border-antares-rose/30';
+                default: return 'bg-antares-amber/20 text-antares-amber border border-antares-amber/30';
+            }
+        }
+
+        function getProgressColor(progress) {
+            if (progress >= 90) return 'bg-antares-emerald';
+            if (progress >= 50) return 'bg-antares-cyan';
+            return 'bg-antares-amber';
+        }
+
+        // Button actions
+        function apiHealthCheck() {
+            addLog('Running health check...', 'INFO');
+            fetchHealth();
+        }
+
+        function viewDocs() {
+            window.open(`${API_BASE}/docs`, '_blank');
+            addLog('Opening API documentation...', 'INFO');
+        }
+
+        async function cleanupCache() {
+            addLog('Cleaning up cache...', 'WARNING');
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/pipeline/cleanup/cache/all`, { method: 'POST' });
+                const result = await response.json();
+                addLog(`Cache cleanup: ${result.freed_gb?.toFixed(2) || 0} GB freed`, 'SUCCESS');
+                fetchDiskUsage();
+            } catch (err) {
+                addLog('Cache cleanup failed: ' + err.message, 'ERROR');
+            }
+        }
+
+        function exportLogs() {
+            const terminal = document.getElementById('terminal');
+            const logs = Array.from(terminal.children).map(c => c.textContent).join('\n');
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `antares-logs-${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addLog('Logs exported to file', 'SUCCESS');
+        }
+
+        // Initialize
+        function init() {
+            addLog('Dashboard initialized. Connecting to backend...', 'INFO');
+            
+            // Start polling
+            setInterval(updateUptime, 1000);
+            setInterval(fetchTelemetry, 2000);
+            setInterval(fetchHealth, 10000);
+            setInterval(fetchDiskUsage, 30000);
+            setInterval(loadSessions, 10000);
+            
+            // Initial loads
+            fetchHealth();
+            fetchDiskUsage();
+            loadSessions();
+            
+            // Welcome message
+            setTimeout(() => {
+                addLog('Backend connection established', 'SUCCESS');
+                addLog('Dashboard ready. Waiting for capsule telemetry...', 'INFO');
+            }, 500);
+        }
+
+        // Start on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

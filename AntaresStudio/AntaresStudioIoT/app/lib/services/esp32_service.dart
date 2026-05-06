@@ -12,6 +12,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 /// SD karttaki fotoğraf bilgisi
@@ -32,23 +33,70 @@ class SDPhoto {
   String get sizeKB => (size / 1024).toStringAsFixed(0);
 }
 
-/// Arduino komut yanıtı
+/// Arduino komut yanıtı - ENHANCED with BUSY handling
 class ArduinoCommandResult {
   final bool success;
   final String response;
   final String command;
+  final bool isBusy;  // NEW: Indicates system is in operation
+  final bool isTimeout;
 
   ArduinoCommandResult({
     required this.success,
     required this.response,
     required this.command,
+    this.isBusy = false,
+    this.isTimeout = false,
   });
 
   factory ArduinoCommandResult.fromJson(Map<String, dynamic> json) {
+    final resp = json['response']?.toString() ?? '';
+    final isBusy = resp == 'BUSY';
+    final isTimeout = json['timeout'] == true;
+    
     return ArduinoCommandResult(
+      success: json['success'] == true && !isBusy,
+      response: resp,
+      command: json['cmd']?.toString() ?? '',
+      isBusy: isBusy,
+      isTimeout: isTimeout,
+    );
+  }
+
+  /// Create from a direct response string (for legacy parsing)
+  factory ArduinoCommandResult.fromResponse(String response, String cmd) {
+    final isBusy = response == 'BUSY';
+    final isSuccess = response.startsWith('OK');
+    
+    return ArduinoCommandResult(
+      success: isSuccess && !isBusy,
+      response: response,
+      command: cmd,
+      isBusy: isBusy,
+    );
+  }
+}
+
+/// Black Box (Kara Kutu) command result — v3.2
+class BlackBoxCommandResult {
+  final bool success;
+  final String message;
+  final bool isRecording;
+  final bool fileDeleted;
+
+  BlackBoxCommandResult({
+    required this.success,
+    required this.message,
+    this.isRecording = false,
+    this.fileDeleted = false,
+  });
+
+  factory BlackBoxCommandResult.fromJson(Map<String, dynamic> json) {
+    return BlackBoxCommandResult(
       success: json['success'] ?? false,
-      response: json['response'] ?? '',
-      command: json['cmd'] ?? '',
+      message: json['message']?.toString() ?? '',
+      isRecording: json['is_recording'] ?? false,
+      fileDeleted: json['file_deleted'] ?? false,
     );
   }
 }
@@ -83,7 +131,7 @@ class ESP32Status {
   }
 }
 
-/// Arduino sensör verileri
+/// Arduino sensör verileri — v3.2 with Black Box support
 class ArduinoSensorData {
   final double temperature;
   final int humidity;
@@ -94,6 +142,7 @@ class ArduinoSensorData {
   final String mode;
   final int motorPosition;
   final bool isHomed;
+  final bool isRecording;  // [v3.2] Black Box recording flag
 
   ArduinoSensorData({
     this.temperature = 0,
@@ -105,19 +154,35 @@ class ArduinoSensorData {
     this.mode = 'OTONOM',
     this.motorPosition = 0,
     this.isHomed = false,
+    this.isRecording = false,  // [v3.2]
   });
 
   factory ArduinoSensorData.fromJson(Map<String, dynamic> json) {
+    // Handle both string and numeric types safely
+    dynamic parseValue(dynamic val, dynamic defaultVal) {
+      if (val == null) return defaultVal;
+      if (val is num) return val;
+      if (val is String) {
+        if (defaultVal is int) return int.tryParse(val) ?? defaultVal;
+        if (defaultVal is double) return double.tryParse(val) ?? defaultVal;
+        if (defaultVal is bool) {
+          return val == '1' || val.toLowerCase() == 'true';
+        }
+      }
+      return defaultVal;
+    }
+
     return ArduinoSensorData(
-      temperature: double.tryParse(json['temp']?.toString() ?? '0') ?? 0,
-      humidity: int.tryParse(json['hum']?.toString() ?? '0') ?? 0,
-      soilMoisture: int.tryParse(json['soil']?.toString() ?? '0') ?? 0,
-      heaterPower: int.tryParse(json['heater']?.toString() ?? '0') ?? 0,
-      fanSly: json['fanSly']?.toString() == '1',
-      fanDz: json['fanDz']?.toString() == '1',
-      mode: json['mode'] ?? 'OTONOM',
-      motorPosition: int.tryParse(json['position']?.toString() ?? '0') ?? 0,
-      isHomed: json['homed']?.toString() == '1',
+      temperature: parseValue(json['temp'], 0.0),
+      humidity: parseValue(json['hum'], 0),
+      soilMoisture: parseValue(json['soil'], 0),
+      heaterPower: parseValue(json['heater'], 0),
+      fanSly: parseValue(json['fanSly'], false),
+      fanDz: parseValue(json['fanDz'], false),
+      mode: json['mode']?.toString() ?? 'OTONOM',
+      motorPosition: parseValue(json['position'], 0),
+      isHomed: parseValue(json['homed'], false),
+      isRecording: parseValue(json['is_record'], false),  // [v3.2]
     );
   }
 }
@@ -265,10 +330,27 @@ class ESP32Service {
             body: jsonEncode({'cmd': cmd}),
           )
           .timeout(timeout);
+          
       if (response.statusCode == 200) {
-        return ArduinoCommandResult.fromJson(jsonDecode(response.body));
+        final json = jsonDecode(response.body);
+        
+        // Handle BUSY response from Arduino
+        final resp = json['response']?.toString() ?? '';
+        if (resp == 'BUSY') {
+          return ArduinoCommandResult(
+            success: false,
+            response: 'BUSY',
+            command: cmd,
+            isBusy: true,
+            isTimeout: false,
+          );
+        }
+        
+        return ArduinoCommandResult.fromJson(json);
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[ESP32Service] Command error: $e');
+    }
     return null;
   }
 
@@ -300,6 +382,44 @@ class ESP32Service {
   Future<bool> resumeAutonomous() async {
     final result = await sendArduinoCommand('C');
     return result?.success ?? false;
+  }
+
+  // ---- Black Box (Kara Kutu) v3.2 ----
+
+  /// Send START/STOP command to Black Box endpoint
+  Future<BlackBoxCommandResult?> sendBlackBoxCommand(String action) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/api/blackbox/${action.toLowerCase()}'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 60)); // Long timeout for STOP + upload
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        return BlackBoxCommandResult.fromJson(json);
+      }
+    } catch (e) {
+      debugPrint('[ESP32Service] BlackBox command error: $e');
+    }
+    return null;
+  }
+
+  /// Get Black Box status from ESP32
+  Future<Map<String, dynamic>?> getBlackBoxStatus() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$_baseUrl/api/blackbox/status'))
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint('[ESP32Service] BlackBox status error: $e');
+    }
+    return null;
   }
 
   // ---- SD Kart (V3.0: Kaldırıldı - High Speed Direct Transfer Kullanın) ----

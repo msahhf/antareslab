@@ -17,12 +17,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import 'theme/app_theme.dart';
+import 'theme/antares_theme.dart';
 import 'providers/device_provider.dart';
 import 'providers/scan_provider.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/control_screen.dart';
+import 'screens/gallery_screen.dart';
 import 'screens/update_screen.dart';
-import 'screens/three_d_view_screen.dart';
 import 'services/backend_process_manager.dart';
 import 'services/app_update_service.dart';
 import 'widgets/update_dialog.dart';
@@ -38,7 +39,7 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: AntaresColors.surface,
+    systemNavigationBarColor: AntaresColors.background,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
 
@@ -92,11 +93,12 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
   late AnimationController _logoGlowController;
   late Animation<double> _logoGlowAnimation;
 
-  // Sayfalar
+  // Sayfalar - New Sci-Fi Navigation
   final List<Widget> _pages = const [
-    DashboardScreen(),
-    ThreeDViewScreen(),
-    UpdateScreen(),
+    DashboardScreen(),    // Telemetry Dashboard (Home)
+    ControlScreen(),      // Motor & Scan Controls
+    GalleryScreen(),      // Media & Sync Gallery
+    UpdateScreen(),       // Firmware Management
   ];
 
   @override
@@ -312,9 +314,10 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             children: [
-              _buildNavItem(0, Icons.dashboard_rounded, 'Dashboard'),
-              _buildNavItem(1, Icons.view_in_ar_rounded, '3D Tarama'),
-              _buildNavItem(2, Icons.system_update_rounded, 'Güncelleme'),
+              _buildNavItem(0, Icons.dashboard_rounded, 'Telemetry'),
+              _buildNavItem(1, Icons.gamepad_rounded, 'Control'),
+              _buildNavItem(2, Icons.photo_library_rounded, 'Gallery'),
+              _buildNavItem(3, Icons.settings_rounded, 'System'),
             ],
           ),
         ),
@@ -361,11 +364,13 @@ class _AppShellState extends State<AppShell> with TickerProviderStateMixin {
   String _getPageSubtitle() {
     switch (_currentIndex) {
       case 0:
-        return 'KONTROL MERKEZİ';
+        return 'TELEMETRY DASHBOARD';
       case 1:
-        return 'FOTOGRAMETRİ';
+        return 'CONTROL CENTER';
       case 2:
-        return 'FİRMWARE YÖNETİMİ';
+        return 'MEDIA GALLERY';
+      case 3:
+        return 'SYSTEM MANAGEMENT';
       default:
         return '';
     }

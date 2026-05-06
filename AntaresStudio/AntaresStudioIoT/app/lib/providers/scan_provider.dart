@@ -242,7 +242,7 @@ class ScanProvider extends ChangeNotifier {
   // Backend'e Yükleme
   // ============================================================
 
-  /// Çekilen/aktarılan fotoğrafları backend'e yükle
+  /// Çekilen/aktarılan fotoğrafları backend'e yükle - NON-BLOCKING
   Future<String?> uploadToBackend(List<Uint8List> photos) async {
     if (photos.isEmpty) return null;
 
@@ -266,6 +266,10 @@ class ScanProvider extends ChangeNotifier {
           sid = result.sessionId;
           _sessionId = sid;
         }
+        
+        // CRITICAL: Yield control to Flutter event loop between uploads
+        // This prevents UI freezing during long upload operations
+        await Future.delayed(Duration.zero);
       }
 
       _setState(ScanState.completed,

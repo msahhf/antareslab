@@ -67,6 +67,11 @@ enum ScanSubState { WAIT_START, TRIGGER_CAP, WAIT_CAP, MOVE_NEXT } scanSubState 
 char rxBuf[64];
 int rxIdx = 0;
 
+// ESP32 Response Buffer (for handshake responses)
+char responseBuf[32];
+int responseIdx = 0;
+bool responseReady = false;
+
 // ===================== HELPERS =====================
 
 void sendTelemetry() {
@@ -187,9 +192,22 @@ void handleScanning() {
       break;
       
     case WAIT_CAP:
-      // In v4.0, we wait for "OK,CAP" from ESP32 confirming storage (Direct or SD)
-      if (millis() - lastScanActionTime > 10000) { 
+      // Wait for OK,CAP response from ESP32 confirming image stored
+      if (responseReady) {
+        responseReady = false;
+        if (strncmp(responseBuf, "OK,CAP", 6) == 0) {
+          scanSubState = MOVE_NEXT;
+        } else if (strncmp(responseBuf, "ERR,", 4) == 0) {
+          // ESP32 reported an error - abort scan
+          currentState = ERROR;
+          lcd.setCursor(0, 1);
+          lcd.print(F("CAP ERROR       "));
+        }
+      } else if (millis() - lastScanActionTime > 10000) {
+        // Timeout - proceed anyway but log error
         scanSubState = MOVE_NEXT;
+        lcd.setCursor(0, 1);
+        lcd.print(F("CAP TIMEOUT     "));
       }
       break;
       
@@ -254,15 +272,49 @@ void setup() {
 void loop() {
   wdt_reset();
   
-  // 1. UART Bridge
+  // 0. Check for ESP32 responses (non-bracketed, newline-terminated)
   while (Serial.available()) {
     char c = Serial.read();
-    if (c == '<') rxIdx = 0;
-    else if (c == '>') {
-      rxBuf[rxIdx] = '\0';
-      processCommand(rxBuf);
-    } else if (rxIdx < 63) {
-      rxBuf[rxIdx++] = c;
+    if (c == '\n') {
+      if (responseIdx > 0 && responseIdx < sizeof(responseBuf)) {
+        responseBuf[responseIdx] = '\0';
+        responseReady = true;
+      }
+      responseIdx = 0;
+    } else if (responseIdx < sizeof(responseBuf) - 1) {
+      responseBuf[responseIdx++] = c;
+    }
+  }
+  
+  // 1. UART Bridge - Command Processing (bracketed commands from PC/ESP32)
+  // Process any pending command chars that arrived
+  static char cmdBuf[64];
+  static int cmdIdx = 0;
+  static bool inCommand = false;
+  
+  // Reset and process any bracketed command chars in the same loop
+  // Note: We already consumed ESP32 responses above, so this handles PC commands
+  // Re-check Serial for any bracketed command format
+  while (Serial.available()) {
+    char c = Serial.peek();  // Peek first to not interfere with response parsing
+    if (c == '<') {
+      inCommand = true;
+      cmdIdx = 0;
+      Serial.read();  // consume the '<'
+    } else if (c == '>' && inCommand) {
+      inCommand = false;
+      Serial.read();  // consume the '>'
+      if (cmdIdx > 0 && cmdIdx < sizeof(cmdBuf)) {
+        cmdBuf[cmdIdx] = '\0';
+        processCommand(cmdBuf);
+      }
+      cmdIdx = 0;
+    } else if (inCommand && cmdIdx < sizeof(cmdBuf) - 1) {
+      cmdBuf[cmdIdx++] = c;
+      Serial.read();  // consume the char
+    } else {
+      // Not part of a command, just consume it (could be response char we already processed)
+      Serial.read();
     }
   }
   

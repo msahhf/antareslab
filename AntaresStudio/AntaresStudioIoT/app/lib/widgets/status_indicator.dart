@@ -4,16 +4,16 @@
 /// animasyonlu nokta + metin ile gösteren yeniden kullanılabilir bileşen.
 
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import '../theme/antares_theme.dart';
 
-enum ConnectionState {
+enum DeviceConnectionStatus {
   connected,
   connecting,
   disconnected,
 }
 
 class StatusIndicator extends StatefulWidget {
-  final ConnectionState state;
+  final DeviceConnectionStatus state;
   final String label;
 
   const StatusIndicator({
@@ -42,9 +42,9 @@ class _StatusIndicatorState extends State<StatusIndicator>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    if (widget.state == ConnectionState.connecting) {
+    if (widget.state == DeviceConnectionStatus.connecting) {
       _pulseController.repeat(reverse: true);
-    } else if (widget.state == ConnectionState.connected) {
+    } else if (widget.state == DeviceConnectionStatus.connected) {
       _pulseController.value = 1.0;
     }
   }
@@ -53,11 +53,11 @@ class _StatusIndicatorState extends State<StatusIndicator>
   void didUpdateWidget(StatusIndicator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.state != oldWidget.state) {
-      if (widget.state == ConnectionState.connecting) {
+      if (widget.state == DeviceConnectionStatus.connecting) {
         _pulseController.repeat(reverse: true);
       } else {
         _pulseController.stop();
-        _pulseController.value = widget.state == ConnectionState.connected ? 1.0 : 0.4;
+        _pulseController.value = widget.state == DeviceConnectionStatus.connected ? 1.0 : 0.4;
       }
     }
   }
@@ -70,22 +70,22 @@ class _StatusIndicatorState extends State<StatusIndicator>
 
   Color get _color {
     switch (widget.state) {
-      case ConnectionState.connected:
+      case DeviceConnectionStatus.connected:
         return AntaresColors.success;
-      case ConnectionState.connecting:
+      case DeviceConnectionStatus.connecting:
         return AntaresColors.warning;
-      case ConnectionState.disconnected:
+      case DeviceConnectionStatus.disconnected:
         return AntaresColors.error;
     }
   }
 
   String get _statusText {
     switch (widget.state) {
-      case ConnectionState.connected:
+      case DeviceConnectionStatus.connected:
         return 'Bağlı';
-      case ConnectionState.connecting:
+      case DeviceConnectionStatus.connecting:
         return 'Bağlanıyor...';
-      case ConnectionState.disconnected:
+      case DeviceConnectionStatus.disconnected:
         return 'Bağlantı Yok';
     }
   }

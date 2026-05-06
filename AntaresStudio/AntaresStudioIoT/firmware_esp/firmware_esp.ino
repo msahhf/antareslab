@@ -81,6 +81,11 @@ struct ArduinoData {
   unsigned long lastUpdate = 0;
 } ardData;
 
+// PC Connection caching (non-blocking)
+bool pcLastStatus = false;
+unsigned long lastPCCheck = 0;
+const unsigned long PC_CHECK_INTERVAL_MS = 3000;  // Check every 3 seconds
+
 // ===================== LOGGING & SD =====================
 
 void logSD(const char* level, const char* msg) {
@@ -115,12 +120,20 @@ bool initSD() {
 // ===================== HANDSHAKE & ROUTING =====================
 
 bool checkPCConnection() {
+  // Return cached result if recent (prevents blocking during every image route)
+  if (millis() - lastPCCheck < PC_CHECK_INTERVAL_MS) {
+    return pcLastStatus;
+  }
+  
+  lastPCCheck = millis();
+  
   HTTPClient http;
   http.begin("http://192.168.4.2:8000/api/ping"); // PC Side Heartbeat
-  http.setTimeout(500);
+  http.setTimeout(300);  // Shorter timeout to reduce blocking
   int code = http.GET();
+  pcLastStatus = (code == 200);
   http.end();
-  return (code == 200);
+  return pcLastStatus;
 }
 
 void routeImage(camera_fb_t* fb) {
@@ -131,7 +144,7 @@ void routeImage(camera_fb_t* fb) {
     // Note: In a real scenario, we'd POST to PC. 
     // Here we assume the PC will poll or we just log the status.
   } else {
-    logSD("WARNING", "PC Timeout (500ms). Routing to SD.");
+    logSD("WARNING", "PC not active. Routing to SD.");
     if (sdMounted) {
       if (currentSessionFolder == "") {
         currentSessionFolder = "/session_" + String(millis());
@@ -140,9 +153,34 @@ void routeImage(camera_fb_t* fb) {
       String path = currentSessionFolder + "/img_" + String(millis()) + ".jpg";
       File file = SD_MMC.open(path.c_str(), FILE_WRITE);
       if (file) {
-        file.write(fb->buf, fb->len);
+        // Non-blocking chunked write with WDT feeding
+        const size_t CHUNK_SIZE = 1024;
+        size_t written = 0;
+        bool writeSuccess = true;
+        
+        while (written < fb->len) {
+          size_t toWrite = min(CHUNK_SIZE, fb->len - written);
+          size_t n = file.write(fb->buf + written, toWrite);
+          
+          if (n == 0) {
+            writeSuccess = false;
+            break;  // Write error
+          }
+          
+          written += n;
+          
+          // Feed WDT and allow other tasks to run
+          esp_task_wdt_reset();
+          yield();  // Critical: allows HTTP server to process pending requests
+        }
+        
         file.close();
-        logSD("SUCCESS", "Image saved to SD");
+        
+        if (writeSuccess && written == fb->len) {
+          logSD("SUCCESS", "Image saved to SD");
+        } else {
+          logSD("ERROR", "SD write incomplete or failed");
+        }
       }
     }
   }
@@ -199,9 +237,32 @@ static esp_err_t statusHandler(httpd_req_t *req) {
   return httpd_resp_sendstr(req, buf);
 }
 
+// Helper for CORS error responses
+static esp_err_t sendCorsError(httpd_req_t *req, int code, const char* msg) {
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+  httpd_resp_set_type(req, "application/json");
+  
+  StaticJsonDocument<256> doc;
+  doc["error"] = msg;
+  doc["code"] = code;
+  doc["success"] = false;
+  
+  char buf[256];
+  serializeJson(doc, buf);
+  
+  if (code == 500) {
+    httpd_resp_set_status(req, "500 Internal Server Error");
+  } else if (code == 404) {
+    httpd_resp_set_status(req, "404 Not Found");
+  }
+  return httpd_resp_sendstr(req, buf);
+}
+
 static esp_err_t captureHandler(httpd_req_t *req) {
   camera_fb_t* fb = esp_camera_fb_get();
-  if (!fb) return httpd_resp_send_500(req);
+  if (!fb) {
+    return sendCorsError(req, 500, "Camera frame buffer error");
+  }
   
   // High-Quality enforcement for v4.0 scans
   sensor_t *s = esp_camera_sensor_get();
@@ -217,7 +278,9 @@ static esp_err_t captureHandler(httpd_req_t *req) {
 }
 
 static esp_err_t syncListHandler(httpd_req_t *req) {
-  if (!sdMounted) return httpd_resp_send_500(req);
+  if (!sdMounted) {
+    return sendCorsError(req, 500, "SD card not mounted");
+  }
   
   StaticJsonDocument<2048> doc;
   JsonArray sessions = doc.createNestedArray("sessions");
@@ -243,9 +306,12 @@ static esp_err_t syncDownloadHandler(httpd_req_t *req) {
   char path[128];
   // Extract path from URI
   strncpy(path, req->uri + 15, sizeof(path)-1); // Skip /sync/download/
+  path[sizeof(path)-1] = '\0';  // Ensure null termination
   
   File file = SD_MMC.open(path);
-  if (!file || file.isDirectory()) return httpd_resp_send_404(req);
+  if (!file || file.isDirectory()) {
+    return sendCorsError(req, 404, "File not found");
+  }
 
   httpd_resp_set_type(req, "application/octet-stream");
   uint8_t buf[1024];
@@ -257,10 +323,160 @@ static esp_err_t syncDownloadHandler(httpd_req_t *req) {
   return httpd_resp_send_chunk(req, NULL, 0);
 }
 
+// Forward Arduino command and return response
+static esp_err_t arduinoCommandHandler(httpd_req_t *req) {
+  char buf[128];
+  int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+  if (ret <= 0) {
+    return sendCorsError(req, 500, "Failed to receive request body");
+  }
+  buf[ret] = '\0';
+  
+  // Parse JSON command
+  StaticJsonDocument<256> doc;
+  DeserializationError err = deserializeJson(doc, buf);
+  
+  if (err) {
+    return sendCorsError(req, 400, "Invalid JSON");
+  }
+  
+  const char* cmd = doc["cmd"] | "";
+  if (strlen(cmd) == 0) {
+    return sendCorsError(req, 400, "Missing 'cmd' field");
+  }
+  
+  // Send to Arduino in bracket format
+  Serial2.print("<");
+  Serial2.print(cmd);
+  Serial2.print(">");
+  
+  // Wait for Arduino response (max 5 seconds for motor commands)
+  String response = "";
+  unsigned long start = millis();
+  bool gotResponse = false;
+  
+  while (millis() - start < 5000) {
+    while (Serial2.available()) {
+      char c = Serial2.read();
+      if (c == '\n' || c == '\r') {
+        if (response.length() > 0) {
+          gotResponse = true;
+          break;
+        }
+      } else {
+        response += c;
+        if (response.length() > 64) {
+          response = response.substring(0, 64);  // Prevent overflow
+        }
+      }
+    }
+    if (gotResponse) break;
+    delay(1);
+    esp_task_wdt_reset();
+  }
+  
+  // Prepare response JSON
+  StaticJsonDocument<256> respDoc;
+  respDoc["cmd"] = cmd;
+  
+  if (gotResponse) {
+    respDoc["response"] = response;
+    respDoc["success"] = !response.startsWith("ERR");
+    respDoc["timeout"] = false;
+  } else {
+    respDoc["response"] = "TIMEOUT";
+    respDoc["success"] = false;
+    respDoc["timeout"] = true;
+  }
+  
+  char respBuf[256];
+  serializeJson(respDoc, respBuf);
+  
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+  return httpd_resp_sendstr(req, respBuf);
+}
+
+// Camera settings handler
+static esp_err_t cameraSettingsHandler(httpd_req_t *req) {
+  // Handle GET - return current settings
+  if (req->method == HTTP_GET) {
+    StaticJsonDocument<256> doc;
+    doc["quality"] = camCfg.quality;
+    doc["framesize"] = camCfg.frameSize;
+    doc["stabilization_ms"] = camCfg.stabMs;
+    doc["success"] = true;
+    
+    char buf[256];
+    serializeJson(doc, buf);
+    
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_sendstr(req, buf);
+  }
+  
+  // Handle POST - update settings
+  if (req->method == HTTP_POST) {
+    char buf[128];
+    int ret = httpd_req_recv(req, buf, sizeof(buf) - 1);
+    if (ret <= 0) {
+      return sendCorsError(req, 500, "Failed to receive request body");
+    }
+    buf[ret] = '\0';
+    
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, buf);
+    
+    if (!err) {
+      if (doc.containsKey("quality")) {
+        camCfg.quality = doc["quality"];
+      }
+      if (doc.containsKey("framesize")) {
+        camCfg.frameSize = doc["framesize"];
+      }
+      if (doc.containsKey("stabilization_ms")) {
+        camCfg.stabMs = doc["stabilization_ms"];
+      }
+      
+      // Apply to camera sensor
+      sensor_t *s = esp_camera_sensor_get();
+      if (s) {
+        s->set_quality(s, camCfg.quality);
+        s->set_framesize(s, (framesize_t)camCfg.frameSize);
+      }
+    }
+    
+    // Return current settings
+    doc["quality"] = camCfg.quality;
+    doc["framesize"] = camCfg.frameSize;
+    doc["stabilization_ms"] = camCfg.stabMs;
+    doc["success"] = true;
+    
+    char respBuf[256];
+    serializeJson(doc, respBuf);
+    
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    return httpd_resp_sendstr(req, respBuf);
+  }
+  
+  return sendCorsError(req, 405, "Method not allowed");
+}
+
+// OPTIONS handler for CORS preflight
+static esp_err_t corsOptionsHandler(httpd_req_t *req) {
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Content-Type, Authorization");
+  httpd_resp_set_status(req, "204 No Content");
+  return httpd_resp_send(req, NULL, 0);
+}
+
 void startHTTPServer() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.stack_size = 10240;
-  config.max_uri_handlers = 12;
+  config.max_uri_handlers = 16;
+  config.lru_purge_enable = true;  // Enable LRU purge for memory pressure
 
   if (httpd_start(&httpServer, &config) == ESP_OK) {
     httpd_uri_t uri_status   = { "/api/status", HTTP_GET, statusHandler, NULL };
@@ -268,10 +484,27 @@ void startHTTPServer() {
     httpd_uri_t uri_sync_l   = { "/sync/list", HTTP_GET, syncListHandler, NULL };
     httpd_uri_t uri_sync_d   = { "/sync/download/*", HTTP_GET, syncDownloadHandler, NULL };
     
+    // NEW: Arduino command forwarding
+    httpd_uri_t uri_arduino_cmd = { "/api/arduino/command", HTTP_POST, arduinoCommandHandler, NULL };
+    httpd_uri_t uri_arduino_opts = { "/api/arduino/command", HTTP_OPTIONS, corsOptionsHandler, NULL };
+    
+    // NEW: Camera settings
+    httpd_uri_t uri_camera_get = { "/api/camera/settings", HTTP_GET, cameraSettingsHandler, NULL };
+    httpd_uri_t uri_camera_post = { "/api/camera/settings", HTTP_POST, cameraSettingsHandler, NULL };
+    httpd_uri_t uri_camera_opts = { "/api/camera/settings", HTTP_OPTIONS, corsOptionsHandler, NULL };
+    
+    // Register all handlers
     httpd_register_uri_handler(httpServer, &uri_status);
     httpd_register_uri_handler(httpServer, &uri_capture);
     httpd_register_uri_handler(httpServer, &uri_sync_l);
     httpd_register_uri_handler(httpServer, &uri_sync_d);
+    httpd_register_uri_handler(httpServer, &uri_arduino_cmd);
+    httpd_register_uri_handler(httpServer, &uri_arduino_opts);
+    httpd_register_uri_handler(httpServer, &uri_camera_get);
+    httpd_register_uri_handler(httpServer, &uri_camera_post);
+    httpd_register_uri_handler(httpServer, &uri_camera_opts);
+    
+    logSD("INFO", "HTTP Server started with 9 endpoints");
   }
 }
 
@@ -290,24 +523,83 @@ void setup() {
 
   startHTTPServer();
   
-  esp_task_wdt_init(WDT_TIMEOUT_S, true);
+  // WDT Config (v3.0+ compatibility)
+  esp_task_wdt_config_t wdt_config = {
+      .timeout_ms = WDT_TIMEOUT_S * 1000,
+      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, 
+      .trigger_panic = true
+  };
+  esp_task_wdt_init(&wdt_config);
   esp_task_wdt_add(NULL);
+}
+
+// Parse Arduino CSV telemetry: DATA,temp,hum,soil,heater,fanSly,fanDz,mode
+void parseArduinoTelemetry(const String& line) {
+  // Expected format: DATA,25.5,40,512,128,1,0,OTONOM
+  int fieldIndex = 0;
+  int startIdx = 5;  // Skip "DATA," prefix
+  
+  for (int i = startIdx; i <= line.length(); i++) {
+    if (i == line.length() || line[i] == ',') {
+      String field = line.substring(startIdx, i);
+      
+      switch (fieldIndex) {
+        case 0: ardData.temp = field.toFloat(); break;
+        case 1: ardData.hum = field.toInt(); break;
+        case 2: ardData.soil = field.toInt(); break;
+        case 3: ardData.heater = field.toInt(); break;
+        case 4: ardData.fanSly = field.toInt(); break;
+        case 5: ardData.fanDz = field.toInt(); break;
+        case 6: 
+          strncpy(ardData.mode, field.c_str(), sizeof(ardData.mode) - 1);
+          ardData.mode[sizeof(ardData.mode) - 1] = '\0';
+          break;
+      }
+      
+      fieldIndex++;
+      startIdx = i + 1;
+    }
+  }
+  
+  ardData.lastUpdate = millis();
 }
 
 void loop() {
   esp_task_wdt_reset();
-  // Serial2 processing...
+  
+  // Serial2 processing - handle both telemetry and capture commands
+  static String rxBuffer = "";
+  
   while (Serial2.available()) {
-    String line = Serial2.readStringUntil('\n');
-    if (line.startsWith("CEK")) {
-       // Auto-trigger routing for Arduino-driven scans
-       camera_fb_t* fb = esp_camera_fb_get();
-       if (fb) {
-         routeImage(fb);
-         esp_camera_fb_return(fb);
-         Serial2.println("<OK,CAP>"); // Tell Arduino storage is done
-       }
+    char c = Serial2.read();
+    
+    if (c == '\n' || c == '\r') {
+      if (rxBuffer.length() > 0) {
+        rxBuffer.trim();
+        
+        if (rxBuffer.startsWith("DATA,")) {
+          // Telemetry data from Arduino
+          parseArduinoTelemetry(rxBuffer);
+        }
+        else if (rxBuffer == "CEK") {
+          // Capture request from Arduino
+          camera_fb_t* fb = esp_camera_fb_get();
+          if (fb) {
+            routeImage(fb);
+            esp_camera_fb_return(fb);
+            // Send response WITHOUT brackets (Arduino expects raw response)
+            Serial2.println("OK,CAP");
+          } else {
+            Serial2.println("ERR,CAP_FAIL");
+          }
+        }
+        // Clear buffer
+        rxBuffer = "";
+      }
+    } else if (rxBuffer.length() < 64) {
+      rxBuffer += c;
     }
   }
+  
   delay(1);
 }

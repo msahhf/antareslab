@@ -1,24 +1,15 @@
-/// AntaresStudio IoT - Ana Dashboard Ekranı
-///
-/// Canlı sensör verileri, ESP32-CAM canlı görüntüsü,
-/// SD kart durumu ve hızlı kontrol butonları.
-///
-/// Bileşenler:
-///   - Bağlantı durum çubuğu (üst)
-///   - ESP32-CAM canlı görüntü kartı
-///   - 2x2 sensör veri grid'i (Sıcaklık, Nem, Toprak Nem, Isıtıcı)
-///   - Sistem durumu (Heap, PSRAM, Uptime, Motor, Fan)
-///   - Hızlı kontrol butonları (Tarama, Fotoğraf, Motor Home, SD Aktarım)
+/// Antares Studio - Telemetry Dashboard (Sci-Fi Archaeology Capsule Interface)
+/// Real-time sensor vitals with glassmorphism cards and neon gauges
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/device_provider.dart';
 import '../providers/scan_provider.dart';
-import '../theme/app_theme.dart';
-import '../widgets/data_card.dart';
+import '../theme/antares_theme.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/status_indicator.dart' as si;
-import '../services/sync_service.dart';
+import '../widgets/telemetry_gauge.dart';
+import '../widgets/status_indicator.dart';
+import '../widgets/action_button.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -28,26 +19,24 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
-  List<SDSession> _sdSessions = [];
-  bool _isSyncing = false;
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
-
-    // Sayfa giriş animasyonu
-    _fadeController = AnimationController(
+    _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 2000),
     );
-    _fadeAnimation = CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOutCubic,
+    _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _fadeController.forward();
+    _pulseController.repeat(reverse: true);
 
     // İlk bağlantıyı başlat
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -57,139 +46,263 @@ class _DashboardScreenState extends State<DashboardScreen>
 
   @override
   void dispose() {
-    _fadeController.dispose();
+    _pulseController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Consumer2<DeviceProvider, ScanProvider>(
       builder: (context, device, scan, _) {
-        return FadeTransition(
-          opacity: _fadeAnimation,
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // Üst boşluk
-              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        return CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-              // Bağlantı durum kartı
-              SliverToBoxAdapter(child: _buildConnectionCard(device)),
+            // SYSTEM STATUS HEADER
+            SliverToBoxAdapter(
+              child: _buildSystemStatusHeader(device, scan),
+            ),
 
-              // ESP32-CAM Canlı Görüntü
-              SliverToBoxAdapter(child: _buildCameraCard(device)),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-              // Tarama durumu (aktif, duraklatılmış veya pipeline çalışıyorsa)
-              if (scan.isActive || scan.isPaused || scan.isPipelineRunning)
-                SliverToBoxAdapter(child: _buildScanStatusCard(scan)),
+            // TELEMETRY GAUGES
+            SliverToBoxAdapter(
+              child: _buildTelemetrySection(device),
+            ),
 
-              // Sensör Verileri Başlığı
-              SliverToBoxAdapter(
-                child: _buildSectionHeader('CANLI VERİLER', AntaresColors.primary),
-              ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-              // 2x2 Sensör Grid
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverGrid.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 1.15,
-                  children: [
-                    DataCard(
-                      icon: Icons.thermostat_rounded,
-                      label: 'Sıcaklık',
-                      value: device.sensorData.temperature.toStringAsFixed(1),
-                      unit: '°C',
-                      accentColor: AntaresColors.secondary,
-                      sparklineData: device.temperatureHistory,
-                      subtitle: 'Kapsül İçi',
-                    ),
-                    DataCard(
-                      icon: Icons.water_drop_rounded,
-                      label: 'Nem',
-                      value: device.sensorData.humidity.toString(),
-                      unit: '%',
-                      accentColor: AntaresColors.info,
-                      sparklineData: device.humidityHistory,
-                      subtitle: 'Bağıl Nem',
-                    ),
-                    DataCard(
-                      icon: Icons.grass_rounded,
-                      label: 'Toprak Nem',
-                      value: device.sensorData.soilMoisture.toString(),
-                      unit: 'ADC',
-                      accentColor: AntaresColors.primary,
-                      subtitle: 'Analog Okuma',
-                    ),
-                    DataCard(
-                      icon: Icons.local_fire_department_rounded,
-                      label: 'Isıtıcı',
-                      value: '${(device.sensorData.heaterPower / 2.55).toInt()}',
-                      unit: '%',
-                      accentColor: AntaresColors.warning,
-                      subtitle: 'PWM Gücü',
-                    ),
-                  ],
-                ),
-              ),
+            // ACTUATOR STATUS
+            SliverToBoxAdapter(
+              child: _buildActuatorSection(device),
+            ),
 
-              // Sistem Durumu
-              SliverToBoxAdapter(
-                child: _buildSectionHeader('SİSTEM', AntaresColors.primaryDim),
-              ),
-              SliverToBoxAdapter(child: _buildSystemCard(device)),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
 
-              // Hızlı Kontrol Butonları
-              SliverToBoxAdapter(child: _buildQuickActions(device, scan)),
+            // QUICK ACTIONS
+            SliverToBoxAdapter(
+              child: _buildQuickActionsSection(device, scan),
+            ),
 
-              // SD Kart Geçmişi (Yeni v4.0)
-              if (device.espStatus?.sdActive == true) ...[
-                SliverToBoxAdapter(
-                  child: _buildSectionHeader('SD KART GEÇMİŞİ', AntaresColors.warning),
-                ),
-                SliverToBoxAdapter(child: _buildSDHistoryTable(device)),
-              ],
-
-              // Alt boşluk
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
-          ),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
         );
       },
     );
   }
 
   // ----------------------------------------------------------------
-  // Bölüm Başlığı
+  // SYSTEM STATUS HEADER - Large animated status indicator
   // ----------------------------------------------------------------
-  Widget _buildSectionHeader(String title, Color color) {
+  Widget _buildSystemStatusHeader(DeviceProvider device, ScanProvider scan) {
+    final isConnected = device.isConnected;
+    final hasError = device.connectionState == DeviceConnectionState.error;
+    final isScanning = scan.isActive || scan.isPipelineRunning;
+    final isBusy = scan.isActive || scan.isPipelineRunning || scan.isPaused;
+
+    Color statusColor;
+    String statusText;
+    IconData statusIcon;
+
+    if (hasError) {
+      statusColor = AntaresColors.rose;
+      statusText = 'CONNECTION ERROR';
+      statusIcon = Icons.error_outline_rounded;
+    } else if (isScanning) {
+      statusColor = AntaresColors.cyan;
+      statusText = 'SCANNING ACTIVE';
+      statusIcon = Icons.radar_rounded;
+    } else if (isConnected) {
+      statusColor = AntaresColors.emerald;
+      statusText = 'SYSTEM ONLINE';
+      statusIcon = Icons.check_circle_rounded;
+    } else {
+      statusColor = AntaresColors.amber;
+      statusText = 'STANDBY';
+      statusIcon = Icons.power_settings_new_rounded;
+    }
+
+    return AnimatedBuilder(
+      animation: _pulseAnimation,
+      builder: (context, child) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GlassCard(
+            padding: const EdgeInsets.all(20),
+            borderColor: statusColor.withOpacity(0.3),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    // Animated status ring
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: statusColor.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: isBusy ? [
+                          BoxShadow(
+                            color: statusColor.withOpacity(_pulseAnimation.value * 0.4),
+                            blurRadius: 20,
+                            spreadRadius: 2,
+                          ),
+                        ] : null,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          statusIcon,
+                          size: 28,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: statusColor,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            isConnected
+                                ? 'Capsule v${device.firmwareVersion} • ${device.sensorData.mode}'
+                                : device.statusMessage,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AntaresColors.textSecondary,
+                            ),
+                          ),
+                          if (isBusy) ...[
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: LinearProgressIndicator(
+                                value: scan.isPipelineRunning
+                                    ? (scan.pipelineStatus?.progress ?? 0) / 100
+                                    : scan.progressPercent / 100,
+                                backgroundColor: AntaresColors.border.withOpacity(0.3),
+                                color: statusColor,
+                                minHeight: 4,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    // Connection button
+                    _buildConnectionButton(device),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildConnectionButton(DeviceProvider device) {
+    final isConnected = device.isConnected;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => isConnected ? device.disconnect() : device.connect(),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isConnected
+                ? AntaresColors.rose.withOpacity(0.1)
+                : AntaresColors.cyan.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isConnected
+                  ? AntaresColors.rose.withOpacity(0.3)
+                  : AntaresColors.cyan.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isConnected ? Icons.link_off_rounded : Icons.link_rounded,
+                size: 16,
+                color: isConnected ? AntaresColors.rose : AntaresColors.cyan,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                isConnected ? 'DISCONNECT' : 'CONNECT',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isConnected ? AntaresColors.rose : AntaresColors.cyan,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------
+  // TELEMETRY GAUGES - Circular animated indicators
+  // ----------------------------------------------------------------
+  Widget _buildTelemetrySection(DeviceProvider device) {
+    final data = device.sensorData;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      child: Row(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 3,
-            height: 16,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              color: AntaresColors.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2.0,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Container(height: 1, color: AntaresColors.border),
+          _buildSectionTitle('LIVE TELEMETRY', AntaresColors.cyan),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              TelemetryGauge(
+                value: data.temperature,
+                min: -10,
+                max: 60,
+                label: 'TEMPERATURE',
+                unit: '°C',
+                accentColor: AntaresColors.amber,
+                icon: Icons.thermostat_rounded,
+              ),
+              TelemetryGauge(
+                value: data.humidity.toDouble(),
+                min: 0,
+                max: 100,
+                label: 'HUMIDITY',
+                unit: '%RH',
+                accentColor: AntaresColors.cyan,
+                icon: Icons.water_drop_rounded,
+              ),
+              TelemetryGauge(
+                value: data.soilMoisture.toDouble(),
+                min: 0,
+                max: 1024,
+                label: 'SOIL MOISTURE',
+                unit: 'ADC',
+                accentColor: AntaresColors.violet,
+                icon: Icons.grass_rounded,
+              ),
+            ],
           ),
         ],
       ),
@@ -197,483 +310,209 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ----------------------------------------------------------------
-  // Bağlantı Durum Kartı
+  // ACTUATOR STATUS - Heater and fans
   // ----------------------------------------------------------------
-  Widget _buildConnectionCard(DeviceProvider device) {
-    final isConnected = device.isConnected;
+  Widget _buildActuatorSection(DeviceProvider device) {
+    final data = device.sensorData;
+    final heaterPercent = (data.heaterPower / 2.55).round();
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: GlassCard(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        borderColor: isConnected
-            ? AntaresColors.success.withOpacity(0.3)
-            : AntaresColors.border,
-        child: Row(
-          children: [
-            // Durum göstergesi
-            si.StatusIndicator(
-              state: _mapConnectionState(device.connectionState),
-              label: 'KAPSÜL',
-            ),
-            const Spacer(),
-
-            // Firmware versiyonu
-            if (isConnected) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AntaresColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AntaresColors.primary.withOpacity(0.2),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.memory_rounded,
-                        size: 14, color: AntaresColors.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'v${device.firmwareVersion}',
-                      style: const TextStyle(
-                        color: AntaresColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('ACTUATORS', AntaresColors.amber),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              // Heater control
+              Expanded(
+                child: _buildActuatorCard(
+                  'HEATER',
+                  Icons.local_fire_department_rounded,
+                  heaterPercent > 0 ? AntaresColors.amber : AntaresColors.textDisabled,
+                  heaterPercent > 0,
+                  '$heaterPercent% POWER',
                 ),
               ),
-              const SizedBox(width: 6),
-              // Mod badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: device.sensorData.mode == 'STUDIO'
-                      ? AntaresColors.info.withOpacity(0.1)
-                      : AntaresColors.success.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(width: 12),
+              // Sly Fan
+              Expanded(
+                child: _buildActuatorCard(
+                  'SUCTION FAN',
+                  Icons.air_rounded,
+                  data.fanSly ? AntaresColors.cyan : AntaresColors.textDisabled,
+                  data.fanSly,
+                  data.fanSly ? 'ACTIVE' : 'OFF',
                 ),
-                child: Text(
-                  device.sensorData.mode,
-                  style: TextStyle(
-                    color: device.sensorData.mode == 'STUDIO'
-                        ? AntaresColors.info
-                        : AntaresColors.success,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                  ),
+              ),
+              const SizedBox(width: 12),
+              // Dz Fan
+              Expanded(
+                child: _buildActuatorCard(
+                  'DISPERSION FAN',
+                  Icons.wind_power_rounded,
+                  data.fanDz ? AntaresColors.emerald : AntaresColors.textDisabled,
+                  data.fanDz,
+                  data.fanDz ? 'ACTIVE' : 'OFF',
                 ),
               ),
             ],
-
-            const SizedBox(width: 8),
-
-            // Bağlan/Kes butonu
-            _buildMiniButton(
-              icon: isConnected ? Icons.link_off_rounded : Icons.link_rounded,
-              label: isConnected ? 'Kes' : 'Bağlan',
-              color: isConnected ? AntaresColors.textDisabled : AntaresColors.primary,
-              onTap: () {
-                if (isConnected) {
-                  device.disconnect();
-                } else {
-                  device.connect();
-                }
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // ----------------------------------------------------------------
-  // ESP32-CAM Canlı Görüntü Kartı
-  // ----------------------------------------------------------------
-  Widget _buildCameraCard(DeviceProvider device) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: AntaresColors.cardGradient,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AntaresColors.border, width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Başlık
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: AntaresColors.error.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.videocam_rounded,
-                        color: AntaresColors.error, size: 16),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'ESP32-CAM',
-                    style: TextStyle(
-                      color: AntaresColors.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Canlı badge
-                  if (device.isConnected)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AntaresColors.error.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(4),
+  Widget _buildActuatorCard(
+    String label,
+    IconData icon,
+    Color color,
+    bool isActive,
+    String status,
+  ) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      borderColor: color.withOpacity(isActive ? 0.4 : 0.2),
+      child: Column(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withOpacity(0.15),
+              boxShadow: isActive
+                  ? [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 15,
+                        spreadRadius: 2,
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.circle, color: AntaresColors.error, size: 6),
-                          SizedBox(width: 4),
-                          Text(
-                            'CANLI',
-                            style: TextStyle(
-                              color: AntaresColors.error,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  const Spacer(),
-
-                  // Fotoğraf çek butonu
-                  IconButton(
-                    icon: const Icon(Icons.camera_alt_rounded,
-                        color: AntaresColors.textSecondary, size: 20),
-                    onPressed: device.isConnected
-                        ? () => _handleCapture(device)
-                        : null,
-                    tooltip: 'Fotoğraf Çek',
-                    style: IconButton.styleFrom(
-                      backgroundColor: AntaresColors.surfaceElevated,
-                      padding: const EdgeInsets.all(8),
-                    ),
-                  ),
-                ],
-              ),
+                    ]
+                  : null,
             ),
-
-            // Kamera Görüntü Alanı
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AntaresColors.background,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: device.isConnected
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // MJPEG Stream
-                            Image.network(
-                              'http://${DeviceProvider.espHost}:81/api/stream',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) {
-                                return _buildCameraPlaceholder(
-                                    'Stream yüklenemedi', Icons.error_outline_rounded);
-                              },
-                              loadingBuilder: (_, child, progress) {
-                                if (progress == null) return child;
-                                return _buildCameraPlaceholder(
-                                    'Akış bağlanıyor...', Icons.linked_camera_rounded);
-                              },
-                            ),
-
-                            // Çözünürlük badge
-                            Positioned(
-                              bottom: 8,
-                              left: 8,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'IP: ${DeviceProvider.espHost}  |  UXGA 1600×1200',
-                                  style: const TextStyle(
-                                    color: AntaresColors.textDisabled,
-                                    fontSize: 10,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      : Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.videocam_off_rounded,
-                                  size: 40,
-                                  color: AntaresColors.textDisabled.withOpacity(0.3)),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Kapsül bağlı değil',
-                                style: TextStyle(
-                                  color: AntaresColors.textDisabled,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              const Text(
-                                'Wi-Fi: ANTARES_KAPSUL_LAB',
-                                style: TextStyle(
-                                  color: AntaresColors.textDisabled,
-                                  fontSize: 10,
-                                  fontFamily: 'monospace',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                ),
-              ),
+            child: Icon(
+              icon,
+              size: 22,
+              color: color,
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCameraPlaceholder(String text, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: RadialGradient(
-          colors: [AntaresColors.surfaceLight, AntaresColors.background],
-          radius: 0.8,
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: AntaresColors.primary.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            Text(
-              text,
-              style: const TextStyle(color: AntaresColors.textDisabled, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: AntaresColors.textSecondary,
+              letterSpacing: 0.8,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            status,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
 
   // ----------------------------------------------------------------
-  // Tarama Durumu Kartı (aktif, duraklatılmış, pipeline)
+  // QUICK ACTIONS
   // ----------------------------------------------------------------
-  Widget _buildScanStatusCard(ScanProvider scan) {
-    final isPaused = scan.isPaused;
-    final isPipeline = scan.isPipelineRunning;
-    final accentColor = isPaused
-        ? AntaresColors.warning
-        : isPipeline
-            ? AntaresColors.info
-            : AntaresColors.primary;
-    final statusLabel = isPaused
-        ? 'TARAMA DURAKLATILDI'
-        : isPipeline
-            ? 'PİPELİNE ÇALIŞIYOR'
-            : 'TARAMA AKTİF';
+  Widget _buildQuickActionsSection(DeviceProvider device, ScanProvider scan) {
+    final isBusy = scan.isActive || scan.isPipelineRunning;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: AntaresColors.cardGradient,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  isPaused ? Icons.pause_circle_rounded
-                    : isPipeline ? Icons.precision_manufacturing_rounded
-                    : Icons.radar_rounded,
-                  color: accentColor, size: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('QUICK ACTIONS', AntaresColors.emerald),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: ActionButton(
+                  label: 'START 360° SCAN',
+                  icon: Icons.radar_rounded,
+                  onPressed: device.isConnected && !isBusy
+                      ? () => scan.startScan()
+                      : null,
+                  isLoading: scan.isActive && !scan.isPipelineRunning,
+                  isDisabled: !device.isConnected || isBusy,
+                  accentColor: AntaresColors.cyan,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  statusLabel,
-                  style: TextStyle(
-                    color: accentColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const Spacer(),
-                if (!isPaused)
-                  Text(
-                    isPipeline
-                        ? '${scan.pipelineStatus?.progress ?? 0}%'
-                        : '${scan.progressPercent}%',
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            // İlerleme çubuğu
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: isPipeline
-                    ? (scan.pipelineStatus?.progress ?? 0) / 100
-                    : scan.progressPercent / 100,
-                backgroundColor: AntaresColors.surface,
-                color: accentColor,
-                minHeight: 6,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              scan.statusMessage,
-              style: const TextStyle(
-                color: AntaresColors.textSecondary,
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Duraklatılmışsa Resume butonu
-                if (isPaused)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: _buildMiniButton(
-                      icon: Icons.play_arrow_rounded,
-                      label: 'Devam Et',
-                      color: AntaresColors.success,
-                      onTap: () => scan.resumeScan(),
-                    ),
-                  ),
-                // İptal butonu
-                _buildMiniButton(
-                  icon: Icons.stop_rounded,
-                  label: 'İptal',
-                  color: AntaresColors.error,
-                  onTap: () => isPipeline ? scan.cancelPipeline() : scan.cancelScan(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ActionButton(
+                  label: 'CAPTURE PHOTO',
+                  icon: Icons.camera_alt_rounded,
+                  onPressed: device.isConnected && !isBusy
+                      ? () => _capturePhoto(device)
+                      : null,
+                  isDisabled: !device.isConnected || isBusy,
+                  accentColor: AntaresColors.violet,
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ActionButton(
+                  label: 'MOTOR HOME',
+                  icon: Icons.home_rounded,
+                  onPressed: device.isConnected && !isBusy
+                      ? () => device.motorHome()
+                      : null,
+                  isDisabled: !device.isConnected || isBusy,
+                  accentColor: AntaresColors.amber,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   // ----------------------------------------------------------------
-  // Sistem Durumu Kartı
+  // UTILITY WIDGETS
   // ----------------------------------------------------------------
-  Widget _buildSystemCard(DeviceProvider device) {
-    final data = device.sensorData;
-    final esp = device.espStatus;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: AntaresColors.cardGradient,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AntaresColors.border, width: 1),
-        ),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSystemRow(
-                Icons.memory_rounded, 'Boş Heap', _formatBytes(esp?.heapFree ?? 0)),
-            const SizedBox(height: 10),
-            _buildSystemRow(
-                Icons.wifi_rounded, 'WiFi İstemci', '${esp?.wifiClients ?? 0} Cihaz'),
-            const SizedBox(height: 10),
-            _buildSystemRow(
-                Icons.info_outline_rounded, 'Versiyon', 'Antares IoT v${esp?.version ?? "3.0"}'),
-            const SizedBox(height: 10),
-            _buildSystemRow(
-                Icons.rotate_right_rounded, 'Motor',
-                'Pos: ${data.motorPosition}  |  ${data.isHomed ? "HOME" : "?"}',
-                valueColor: data.isHomed
-                    ? AntaresColors.success
-                    : AntaresColors.textDisabled),
-            const SizedBox(height: 10),
-            _buildSystemRow(
-                Icons.air_rounded, 'Fanlar',
-                'SLY: ${data.fanSly ? "AKTİF" : "KAPALI"}  |  DZ: ${data.fanDz ? "AKTİF" : "KAPALI"}',
-                valueColor: (data.fanSly || data.fanDz)
-                    ? AntaresColors.info
-                    : AntaresColors.textDisabled),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSystemRow(IconData icon, String label, String value,
-      {Color? valueColor}) {
+  Widget _buildSectionTitle(String title, Color accentColor) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AntaresColors.textDisabled),
-        const SizedBox(width: 10),
-        Text(
-          label,
-          style: const TextStyle(
-            color: AntaresColors.textDisabled,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
+        Container(
+          width: 3,
+          height: 16,
+          decoration: BoxDecoration(
+            color: accentColor,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 10),
         Text(
-          value,
-          style: TextStyle(
-            color: valueColor ?? AntaresColors.textSecondary,
+          title,
+          style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'monospace',
+            fontWeight: FontWeight.w700,
+            color: AntaresColors.textSecondary,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Container(
+            height: 1,
+            color: AntaresColors.border.withOpacity(0.3),
           ),
         ),
       ],
@@ -681,280 +520,80 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ----------------------------------------------------------------
-  // Hızlı Kontrol Butonları
+  // ACTIONS
   // ----------------------------------------------------------------
-  Widget _buildQuickActions(DeviceProvider device, ScanProvider scan) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.radar_rounded,
-                  label: '360° Tarama\nBaşlat',
-                  color: AntaresColors.primary,
-                  onTap: device.isConnected && !scan.isActive
-                      ? () => scan.startScan()
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.camera_alt_rounded,
-                  label: 'Tek\nFotoğraf',
-                  color: AntaresColors.info,
-                  onTap: device.isConnected
-                      ? () => _handleCapture(device)
-                      : null,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.home_rounded,
-                  label: 'Motor\nHome',
-                  color: AntaresColors.secondary,
-                  onTap: device.isConnected
-                      ? () => device.motorHome()
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _buildActionButton(
-                  icon: Icons.sd_storage_rounded,
-                  label: 'SD Kart\nGeçmişi',
-                  color: device.espStatus?.sdActive == true 
-                      ? AntaresColors.warning 
-                      : AntaresColors.textDisabled,
-                  onTap: device.isConnected && device.espStatus?.sdActive == true
-                      ? () => _showSyncDialog(device)
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
-    final isDisabled = onTap == null;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isDisabled
-              ? AntaresColors.surface
-              : color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isDisabled
-                ? AntaresColors.border
-                : color.withOpacity(0.25),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 28,
-              color: isDisabled
-                  ? AntaresColors.textDisabled.withOpacity(0.3)
-                  : color,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDisabled
-                    ? AntaresColors.textDisabled.withOpacity(0.5)
-                    : AntaresColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------------
-  // Mini buton (bağlan/kes)
-  // ----------------------------------------------------------------
-  Widget _buildMiniButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------------
-  // Fotoğraf Çekimi
-  // ----------------------------------------------------------------
-  void _handleCapture(DeviceProvider device) async {
+  Future<void> _capturePhoto(DeviceProvider device) async {
     final jpeg = await device.capturePhoto();
     if (jpeg != null && mounted) {
       showDialog(
         context: context,
         builder: (_) => Dialog(
-          backgroundColor: AntaresColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                child: Image.memory(jpeg, fit: BoxFit.contain),
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AntaresColors.surface.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AntaresColors.cyan.withOpacity(0.3),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${(jpeg.length / 1024).toStringAsFixed(0)} KB',
-                      style: const TextStyle(
-                        color: AntaresColors.textDisabled,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Kapat'),
-                    ),
-                  ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                  child: Image.memory(jpeg, fit: BoxFit.contain),
                 ),
-              ),
-            ],
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.image_rounded,
+                            size: 16,
+                            color: AntaresColors.cyan.withOpacity(0.7),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${(jpeg.length / 1024).toStringAsFixed(0)} KB',
+                            style: const TextStyle(
+                              color: AntaresColors.textSecondary,
+                              fontSize: 12,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        label: const Text('CLOSE'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
   }
 
-  // ----------------------------------------------------------------
-  // Yardımcılar
-  // ----------------------------------------------------------------
-  si.ConnectionState _mapConnectionState(DeviceConnectionState state) {
+  DeviceConnectionStatus _mapConnectionState(DeviceConnectionState state) {
     switch (state) {
       case DeviceConnectionState.connected:
-        return si.ConnectionState.connected;
+        return DeviceConnectionStatus.connected;
       case DeviceConnectionState.connecting:
       case DeviceConnectionState.reconnecting:
-        return si.ConnectionState.connecting;
+        return DeviceConnectionStatus.connecting;
       default:
-        return si.ConnectionState.disconnected;
+        return DeviceConnectionStatus.disconnected;
     }
-  }
-
-
-
-  // ----------------------------------------------------------------
-  // SD Sync UI (v4.0)
-  // ----------------------------------------------------------------
-  
-  void _showSyncDialog(DeviceProvider device) async {
-    final sync = SyncService(espHost: DeviceProvider.espHost);
-    setState(() => _isSyncing = true);
-    final sessions = await sync.getSessions();
-    setState(() {
-      _sdSessions = sessions;
-      _isSyncing = false;
-    });
-  }
-
-  Widget _buildSDHistoryTable(DeviceProvider device) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: GlassCard(
-        padding: const EdgeInsets.all(0),
-        child: Column(
-          children: [
-            if (_sdSessions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text('Kayıtlı oturum bulunamadı.', 
-                  style: TextStyle(color: AntaresColors.textDisabled)),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _sdSessions.length,
-                separatorBuilder: (_, __) => Divider(color: AntaresColors.border, height: 1),
-                itemBuilder: (context, index) {
-                  final s = _sdSessions[index];
-                  return ListTile(
-                    leading: const Icon(Icons.folder_open_rounded, color: AntaresColors.warning),
-                    title: Text(s.name, style: const TextStyle(color: AntaresColors.textPrimary, fontSize: 13)),
-                    subtitle: Text('${s.date} • ${s.status}', style: const TextStyle(color: AntaresColors.textDisabled, fontSize: 11)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.download_for_offline_rounded, color: AntaresColors.success),
-                      onPressed: () {
-                        // Bulk download trigger
-                      },
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatBytes(int bytes) {
-    if (bytes > 1000000) return '${(bytes / 1000000).toStringAsFixed(1)} MB';
-    if (bytes > 1000) return '${(bytes / 1000).toStringAsFixed(0)} KB';
-    return '$bytes B';
   }
 }
