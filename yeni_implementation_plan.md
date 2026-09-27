@@ -177,10 +177,10 @@ OTONOM FOTOĞRAF ÇEKİMİ:
 #### [MODIFY] [config.h](file:///c:/AntaresLab/AntaresStudio/AntaresStudioIoT/firmware_esp/src/config.h)
 
 ```diff
-- #define WIFI_SSID          "AntaresStudio"
-- #define WIFI_PASSWORD      "antares2026"
+- #define WIFI_SSID          "YOUR_WIFI_SSID"
+- #define WIFI_PASSWORD      "YOUR_WIFI_PASSWORD"
 + #define AP_SSID            "ANTARES_KAPSUL_LAB"
-+ #define AP_PASSWORD        "12345678"
++ #define AP_PASSWORD        "CHANGE_THIS_PASSWORD"
 
 - #define MDNS_HOSTNAME      "antares-scanner"
 - #define MDNS_SERVICE_NAME  "_antares"
@@ -188,7 +188,7 @@ OTONOM FOTOĞRAF ÇEKİMİ:
 - #define MDNS_SERVICE_PORT  80
 + // AP modunda sabit IP: 192.168.4.1
 
-- #define OTA_PASSWORD       "antares_ota_2026"
+- #define OTA_PASSWORD       "YOUR_OTA_PASSWORD"
 - #define OTA_PORT           3232
 + // OTA artık HTTP endpoint üzerinden
 

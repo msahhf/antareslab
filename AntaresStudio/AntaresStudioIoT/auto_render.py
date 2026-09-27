@@ -14,8 +14,8 @@ CLEAN_DIR = os.path.abspath("images_raw")
 # Çıktıların (3D Modelin) kaydedileceği klasör
 OUTPUT_DIR = os.path.abspath("output_3d")
 
-# MESHROOM_BATCH.EXE'NİN BİLGİSAYARINDAKİ TAM YOLU
-MESHROOM_YOLU = r"C:\Meshroom-2025.1.0\meshroom_batch.exe" # Loglarındaki yola göre güncelledim
+# Meshroom batch executable path (configurable via MESHROOM_BIN env var)
+MESHROOM_YOLU = os.environ.get("MESHROOM_BIN", r"meshroom_batch")
 # ============================================
 
 def setup_folders():

@@ -66,5 +66,4 @@ $RECYCLE.BIN/
 logs/
 *.log
 temp/
-C:\Users\MUHAMMET\.gemini\antigravity\brain\52977400-faa0-4593-ac25-cb374de91d82\technical_report_v4.md
-C:\Users\MUHAMMET\.gemini\antigravity\brain\52977400-faa0-4593-ac25-cb374de91d82\technical_report_v3.md
+technical_report_*.md

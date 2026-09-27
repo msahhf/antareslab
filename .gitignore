@@ -1,4 +1,14 @@
 # ===============================
+# Environment Variables & Secrets
+# ===============================
+.env
+.env.*
+*.env
+!.env.example
+credentials.h
+secrets.h
+
+# ===============================
 # Python (AntaresStudio & Genel)
 # ===============================
 __pycache__/

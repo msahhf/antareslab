@@ -6,9 +6,12 @@ echo ===============================================================
 echo  ANTARES - Studio Launcher (Windows)
 echo ===============================================================
 
-REM ---- Python 3.11 hard pin (sende dogru path) ----
-set "PY311=C:\Users\MUHAMMET\AppData\Local\Programs\Python\Python311\python.exe"
-if not exist "%PY311%" goto ERR_NO_PY
+REM ---- Python 3.11 path detection ----
+if exist "%LOCALAPPDATA%\Programs\Python\Python311\python.exe" (
+    set "PY311=%LOCALAPPDATA%\Programs\Python\Python311\python.exe"
+) else (
+    set "PY311=python"
+)
 
 REM ---- flags (no delayed expansion; safe parsing) ----
 set "DO_DIAG=0"

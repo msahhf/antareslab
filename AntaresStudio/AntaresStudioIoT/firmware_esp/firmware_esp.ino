@@ -50,9 +50,16 @@
 
 #define LED_BUILTIN_PIN  33
 
-// ===================== GLOBAL CONSTANTS =====================
-const char* AP_SSID       = "ANTARES_STUDIO_IOT";
-const char* AP_PASSWORD   = "antares123";
+// ===================== CREDENTIALS & CONSTANTS =====================
+#if __has_include("credentials.h")
+  #include "credentials.h"
+  const char* AP_SSID       = AP_SSID_CONFIG;
+  const char* AP_PASSWORD   = AP_PASSWORD_CONFIG;
+#else
+  // Default fallback credentials. Copy 'credentials.h.example' to 'credentials.h' to customize.
+  const char* AP_SSID       = "ANTARES_STUDIO_IOT";
+  const char* AP_PASSWORD   = "CHANGE_THIS_PASSWORD"; // Minimum 8 chars for WPA2
+#endif
 const char* HOSTNAME      = "antares-iot";
 const char* PC_IP         = "192.168.4.2"; // Assumed fixed IP for PC in AP mode
 

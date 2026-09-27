@@ -16,7 +16,7 @@
 
 // ---------------- AP Bilgileri ----------------
 const char *ap_ssid = "ANTARES_KAPSUL_LAB";
-const char *ap_password = "12345678";
+const char *ap_password = "CHANGE_THIS_PASSWORD";
 
 // --------------- Pin Tanımları (AI-Thinker) ---------------
 #define PWDN_GPIO_NUM 32
