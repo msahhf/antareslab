@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Backend Süreç Yöneticisi
 ///
 /// Flutter uygulaması açıldığında Python backend'i (antares_backend.exe)

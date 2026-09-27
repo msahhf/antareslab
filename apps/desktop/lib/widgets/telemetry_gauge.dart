@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Animated Circular Telemetry Gauge
 /// Sci-fi style circular progress indicator with neon glow
 

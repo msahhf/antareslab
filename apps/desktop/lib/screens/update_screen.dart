@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - OTA Güncelleme Ekranı
 ///
 /// GitHub Releases API üzerinden firmware sürümlerini kontrol eden,

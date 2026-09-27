@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CommandMenu from "./components/ui/CommandMenu";
 import Home from "./pages/Home";

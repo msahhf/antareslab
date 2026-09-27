@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Black Box (Kara Kutu) Provider v3.2
 ///
 /// Manages mission recording state, controls ESP32 recording,

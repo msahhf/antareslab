@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Cihaz Bağlantı Provider'ı v2.1
 ///
 /// ESP32-CAM (AP: 192.168.4.1) ile bağlantıyı yöneten,

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - 3D Model Görüntüleyici Ekranı
 ///
 /// Meshroom pipeline'ından gelen .obj modelini görüntüleme.

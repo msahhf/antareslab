@@ -317,4 +317,6 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting, credential managemen
 
 ## License
 
-License selection is pending. See [LICENSE AUDIT](docs/specs/license-audit.md) for evaluation of MIT / Apache-2.0 / GPL-family options. No license file has been committed yet.
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](LICENSE) file for details.
+
+Third-party licenses and attributions are documented in the [NOTICE](NOTICE) file.

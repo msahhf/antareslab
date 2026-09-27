@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 """
 AntaresStudio IoT Backend - WebSocket Manager v3.0
 

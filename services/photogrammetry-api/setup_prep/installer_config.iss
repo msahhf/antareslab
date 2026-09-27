@@ -34,7 +34,7 @@ DisableWelcomePage=no
 ShowLanguageDialog=auto
 
 ; Lisans
-LicenseFile=assets\LICENSE.txt
+LicenseFile=..\..\LICENSE
 
 ; Windows sürüm gereksinimleri
 MinVersion=10.0

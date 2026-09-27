@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 """
 AntaresStudio IoT - Black Box (Kara Kutu) Service v3.2
 

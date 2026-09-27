@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Sci-Fi Archaeology Dashboard Theme
 /// Complete Material 3 Dark Theme with glassmorphism accents
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+
 """
 AntaresStudio IoT - ESP32 Auto-Discovery & Registration v3.1
 

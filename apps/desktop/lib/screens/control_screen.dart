@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Control Center Screen
 /// Motor controls, mode selector, and 360° scan interface
 

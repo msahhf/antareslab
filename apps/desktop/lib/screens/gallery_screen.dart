@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Media Gallery & Sync Screen
 /// Photo grid, session management, and backend upload interface
 

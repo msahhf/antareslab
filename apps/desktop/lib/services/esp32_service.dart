@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - ESP32 HTTP API İstemcisi v2.1
 ///
 /// ESP32-CAM'in AP modunda sunduğu REST API'ye erişim.

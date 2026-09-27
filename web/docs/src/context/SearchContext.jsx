@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 import { createContext, useContext, useState, useEffect } from "react";
 
 const SearchContext = createContext();

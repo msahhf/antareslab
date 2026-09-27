@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Güncelleme Dialog'u
 ///
 /// Yeni sürüm mevcut olduğunda gösterilen şık, modern dialog.

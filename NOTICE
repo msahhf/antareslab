@@ -1,0 +1,244 @@
+NOTICE file for AntaresLab
+
+This product includes software developed by the AntaresLab project
+(https://github.com/ScRien/antareslab).
+
+This product includes the following third-party components:
+
+=== Backend Dependencies (Python) ===
+
+fastapi >= 0.109.0
+  License: MIT
+  Copyright (c) 2018-present, Sebastián Ramírez
+  https://github.com/fastapi/fastapi
+
+uvicorn >= 0.27.0
+  License: BSD-3-Clause
+  Copyright (c) 2018-present, Marcelo Trylesinski
+  https://github.com/encode/uvicorn
+
+python-multipart >= 0.0.9
+  License: MIT
+  Copyright (c) 2018-2021, Marcel Hellkamp
+  https://github.com/Kludex/python-multipart
+
+rembg >= 2.0.50
+  License: MIT
+  Copyright (c) 2020-2023, Daniel Gatis
+  https://github.com/danielgatis/rembg
+
+Pillow >= 10.2.0
+  License: HPND (Historical Permission Notice and Disclaimer)
+  Copyright (c) 1995-2011, Fredrik Lundh
+  Copyright (c) 2010-2023, Alex Clark and Contributors
+  https://github.com/python-pillow/Pillow
+
+numpy >= 1.26.0
+  License: BSD-3-Clause
+  Copyright (c) 2005-2023, NumPy Developers
+  https://numpy.org
+
+trimesh >= 4.0.0
+  License: MIT
+  Copyright (c) 2014-2023, Michael Dawson-Haggerty
+  https://github.com/mikedh/trimesh
+
+pyglet >= 2.0.0
+  License: BSD-3-Clause
+  Copyright (c) 2006-2023, pyglet contributors
+  https://pyglet.org
+
+pydantic >= 2.5.0
+  License: MIT
+  Copyright (c) 2017-2023, Samuel Colvin
+  https://github.com/pydantic/pydantic
+
+pydantic-settings >= 2.0.0
+  License: MIT
+  Copyright (c) 2017-2023, Samuel Colvin
+  https://github.com/pydantic/pydantic-settings
+
+aiofiles >= 23.2.0
+  License: Apache-2.0
+  Copyright (c) 2016-2023, Alex Grönholm
+  https://github.com/Tinche/aiofiles
+
+python-dotenv >= 1.0.0
+  License: MIT
+  Copyright (c) 2019-2023, Saurabh Kumar
+  https://github.com/theskumar/python-dotenv
+
+httpx >= 0.27.0
+  License: BSD-3-Clause
+  Copyright (c) 2020-2023, Tom Forbes
+  https://github.com/encode/httpx
+
+=== Desktop App Dependencies (Flutter/Dart) ===
+
+flutter (SDK)
+  License: BSD-3-Clause
+  Copyright (c) 2014, The Flutter Authors
+  https://flutter.dev
+
+http ^1.2.0
+  License: BSD-3-Clause
+  Copyright (c) 2013, the Dart project authors
+  https://pub.dev/packages/http
+
+provider ^6.1.0
+  License: MIT
+  Copyright (c) 2019, Remi Rousselet
+  https://pub.dev/packages/provider
+
+path_provider ^2.1.0
+  License: BSD-3-Clause
+  Copyright (c) 2019, The Flutter Authors
+  https://pub.dev/packages/path_provider
+
+cupertino_icons ^1.0.6
+  License: MIT
+  Copyright (c) 2018, The Flutter Authors
+  https://pub.dev/packages/cupertino_icons
+
+url_launcher ^6.2.0
+  License: BSD-3-Clause
+  Copyright (c) 2018, The Flutter Authors
+  https://pub.dev/packages/url_launcher
+
+flutter_lints ^3.0.0
+  License: BSD-3-Clause
+  Copyright (c) 2018, The Flutter Authors
+  https://pub.dev/packages/flutter_lints
+
+=== Documentation Portal Dependencies (React/TypeScript) ===
+
+react ^19.2.0
+  License: MIT
+  Copyright (c) 2013-present, Meta Platforms, Inc.
+  https://reactjs.org
+
+react-dom ^19.2.0
+  License: MIT
+  Copyright (c) 2013-present, Meta Platforms, Inc.
+  https://reactjs.org
+
+react-router-dom ^7.13.0
+  License: MIT
+  Copyright (c) 2016-2023, React Training
+  https://reactrouter.com
+
+react-syntax-highlighter ^16.1.0
+  License: MIT
+  Copyright (c) 2016, Conor Hastings
+  https://github.com/react-syntax-highlighter/react-syntax-highlighter
+
+lucide-react ^0.563.0
+  License: ISC
+  Copyright (c) 2023, Lucide Contributors
+  https://lucide.dev
+
+cmdk ^1.1.1
+  License: MIT
+  Copyright (c) 2023, Paco Coursey
+  https://github.com/pacocoursey/cmdk
+
+tailwindcss ^4.1.18
+  License: MIT
+  Copyright (c) 2023, Tailwind Labs
+  https://tailwindcss.com
+
+@vitejs/plugin-react ^5.1.1
+  License: MIT
+  Copyright (c) 2020-2023, Vite contributors
+  https://vitejs.dev
+
+eslint ^9.39.1
+  License: MIT
+  Copyright (c) 2013, Nicholas C. Zakas
+  https://eslint.org
+
+=== Landing Page Dependencies (External CDN) ===
+
+Fontshare (Clash Display, Inter, JetBrains Mono)
+  License: Free for commercial use
+  https://fontshare.com
+
+Google Fonts (Inter, JetBrains Mono)
+  License: SIL Open Font License 1.1
+  Copyright (c) 2016-2023, Google LLC
+  https://fonts.google.com
+
+TailwindCSS CDN
+  License: MIT
+  https://tailwindcss.com
+
+GSAP (GreenSock Animation Platform) ^3.12.5
+  License: GreenSock Standard License
+  Standard license allows free use in commercial projects
+  Club GreenSock membership required only for bonus plugins
+  https://greensock.com/standard-license/
+
+Lenis @1.1.18
+  License: MIT
+  Copyright (c) 2023, Studio Freight
+  https://github.com/darkroomengineering/lenis
+
+=== Firmware Libraries (Arduino/PlatformIO) ===
+
+ESP-IDF (esp_camera, WiFi, ESPmDNS, esp_http_server, Update, Preferences, esp_task_wdt, SD_MMC, HTTPClient)
+  License: Apache-2.0
+  Copyright (c) 2016-2023, Espressif Systems
+  https://github.com/espressif/esp-idf
+
+ArduinoJson
+  License: MIT
+  Copyright (c) 2014-2023, Benoît Blanchon
+  https://arduinojson.org
+
+ESPAsyncWebServer
+  License: LGPL-2.1
+  Copyright (c) 2015-2023, me-no-dev
+  https://github.com/me-no-dev/ESPAsyncWebServer
+
+AsyncTCP
+  License: LGPL-2.1
+  Copyright (c) 2015-2023, me-no-dev
+  https://github.com/me-no-dev/AsyncTCP
+
+SD_MMC (part of ESP-IDF)
+  License: Apache-2.0
+
+DHT sensor library
+  License: MIT
+  Copyright (c) 2015-2023, Adafruit / Various contributors
+
+LiquidCrystal_I2C
+  License: GPL-3.0 (verify specific variant)
+  Copyright (c) 2015-2023, various contributors
+
+avr-libc (avr/wdt.h, Wire.h)
+  License: LGPL-2.1 / BSD-3-Clause
+  Copyright (c) 2000-2023, AVR Libc Developers
+
+=== Fonts & Assets ===
+
+Clash Display (Fontshare)
+  License: Free for commercial use
+  https://fontshare.com/fonts/clash-display
+
+Inter (Google Fonts)
+  License: SIL Open Font License 1.1
+  Copyright (c) 2016, The Inter Project Authors
+
+JetBrains Mono (Google Fonts)
+  License: SIL Open Font License 1.1
+  Copyright (c) 2016, JetBrains
+
+Icons from Lucide (lucide-react)
+  License: ISC
+  https://lucide.dev
+
+Images in web/landing/ (hero.png, scene1-5.png, logo.jpeg)
+  Project-owned assets
+
+=== END OF NOTICE ===

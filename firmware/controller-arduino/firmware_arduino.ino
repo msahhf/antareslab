@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 // =====================================================================
 // AntaresStudio IoT - Arduino Nano Firmware v4.0.0 (Hybrid Priority)
 // =====================================================================

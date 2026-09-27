@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Durum Göstergesi Widget'ı
 ///
 /// Bağlantı durumu, sensör durumu gibi bilgileri küçük

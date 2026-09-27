@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Interactive 360° Motor Control Dial
 /// Futuristic circular dial for precise motor position control
 

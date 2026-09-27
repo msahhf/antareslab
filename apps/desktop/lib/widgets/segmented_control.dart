@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Sci-Fi Segmented Control (Mode Selector)
 /// Futuristic pill-style segmented control with neon glow
 

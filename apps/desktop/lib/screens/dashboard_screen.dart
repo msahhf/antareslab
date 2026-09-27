@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Telemetry Dashboard (Sci-Fi Archaeology Capsule Interface)
 /// Real-time sensor vitals with glassmorphism cards and neon gauges
 

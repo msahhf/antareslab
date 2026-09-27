@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Uygulama Teması
 ///
 /// Dark Mode, Modern, Industrial tasarım dili.

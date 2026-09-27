@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Uygulama Güncelleme Servisi
 ///
 /// GitHub Releases API veya uzak version_info.json dosyasından

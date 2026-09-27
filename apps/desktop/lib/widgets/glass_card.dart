@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Glassmorphism Kart Widget'ı
 ///
 /// Yarı şeffaf, bulanık arka planlı modern kart bileşeni.

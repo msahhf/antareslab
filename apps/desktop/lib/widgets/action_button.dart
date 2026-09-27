@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// Antares Studio - Glowing Action Button
 /// Large, satisfying buttons with neon glow effects for primary actions
 

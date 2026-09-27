@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - UpdateManager
 ///
 /// GitHub Releases'dan firmware indirme ve ESP32-CAM'e OTA gönderme.

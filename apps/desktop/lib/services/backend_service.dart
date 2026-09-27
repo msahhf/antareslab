@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Python Backend HTTP İstemcisi v2.1
 ///
 /// Lokal backend (localhost:8000) ile iletişim.

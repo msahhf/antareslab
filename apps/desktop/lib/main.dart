@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Ana Uygulama Giriş Noktası
 ///
 /// Antares Kapsül kontrol merkezi (Windows masaüstü).

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Tarama Orkestrasyon Provider'ı v2.1
 ///
 /// 360° tarama iş akışını ve SD kart aktarımını yönetir.

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /// AntaresStudio IoT - Device Discovery Service
 ///
 /// mDNS ile ağdaki ESP32-CAM cihazlarını keşfetme.
