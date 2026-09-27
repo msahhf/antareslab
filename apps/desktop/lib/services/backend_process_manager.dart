@@ -5,9 +5,9 @@
 ///
 /// Dosya yapısı (kurulum sonrası):
 ///   C:\Program Files\AntaresStudio\
-///   ├── app\                          ← Flutter exe + dll'ler
+///   ├── apps\desktop\                 ← Flutter exe + dll'ler
 ///   │   └── antares_studio_iot.exe
-///   └── backend\                      ← PyInstaller çıktısı
+///   └── services\photogrammetry-api\  ← PyInstaller çıktısı
 ///       └── antares_backend.exe
 
 import 'dart:io';
@@ -23,18 +23,19 @@ class BackendProcessManager {
 
   /// Backend exe'nin bağıl konumunu bul
   String _resolveBackendPath() {
-    // Flutter exe konumu: .../app/antares_studio_iot.exe
-    // Backend konumu:     .../backend/antares_backend.exe
+    // Flutter exe konumu: .../apps/desktop/antares_studio_iot.exe
+    // Backend konumu:     .../services/photogrammetry-api/antares_backend.exe
     final exeDir = File(Platform.resolvedExecutable).parent.path;
 
-    // Release kurulum yapısı: exe app/ altında, backend ../backend/ altında
-    final backendPath = '$exeDir\\..\\backend\\antares_backend.exe';
+    // Release kurulum yapısı: exe apps/desktop/ altında, backend ../services/photogrammetry-api/ altında
+    final backendPath = '$exeDir\\..\\services\\photogrammetry-api\\antares_backend.exe';
     final normalizedPath = File(backendPath).absolute.path;
 
     // Geliştirme ortamında doğrudan backend dizini kontrol
     if (!File(normalizedPath).existsSync()) {
       // Debug: proje kökünden bağıl yol
-      final debugPath = '$exeDir\\..\\..\\..\\..\\..\\backend\\antares_backend.exe';
+      // apps/desktop/build/windows/x64/runner/Release -> services/photogrammetry-api
+      final debugPath = '$exeDir\\..\\..\\..\\..\\..\\services\\photogrammetry-api\\antares_backend.exe';
       if (File(debugPath).existsSync()) {
         return File(debugPath).absolute.path;
       }

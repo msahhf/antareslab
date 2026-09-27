@@ -12,21 +12,21 @@ This is a **multi-project monorepo** with one **active production system** (Anta
 
 | Project | Path | Stack | Status |
 |---------|------|-------|--------|
-| **AntaresStudio IoT — Flutter App** | `AntaresStudio/AntaresStudioIoT/app/` | Flutter (Windows desktop) | Primary UI |
-| **AntaresStudio IoT — Backend** | `AntaresStudio/AntaresStudioIoT/backend/` | FastAPI (rembg + Meshroom) | Primary backend |
-| **AntaresStudio IoT — ESP32 Firmware** | `AntaresStudio/AntaresStudioIoT/firmware_esp/` | Arduino/PlatformIO | Current gateway |
-| **AntaresStudio IoT — Arduino Firmware** | `AntaresStudio/AntaresStudioIoT/firmware_arduino/` | Arduino/PlatformIO | Current controller |
-| **AntaresWeb** | `AntaresWeb/` | Static HTML | Landing/product site |
+| **AntaresStudio IoT — Flutter App** | `apps/desktop/` | Flutter (Windows desktop) | Primary UI |
+| **AntaresStudio IoT — Backend** | `services/photogrammetry-api/` | FastAPI (rembg + Meshroom) | Primary backend |
+| **AntaresStudio IoT — ESP32 Firmware** | `firmware/gateway-esp32cam/` | Arduino/PlatformIO | Current gateway |
+| **AntaresStudio IoT — Arduino Firmware** | `firmware/controller-arduino/` | Arduino/PlatformIO | Current controller |
+| **AntaresWeb** | `web/landing/` | Static HTML | Landing/product site |
 
 ### Documentation (Incomplete)
-- `AntaresDocs/` — React/Vite documentation portal; content needs cleanup
+- `web/docs/` — React/Vite documentation portal; content needs cleanup
 
 ### Legacy / Prototype (Do Not Modify)
-- `AntaresStudio/archive/` — Legacy PyQt6 desktop application
-- `AntaresElectronics/` — Legacy electronics/firmware
-- `AntaresStudio/backend/` — Old COLMAP/Open3D backend prototype
-- `AntaresStudio/frontend/` — Old React/Vite/Three.js prototype
-- `AntaresBitis/` — Duplicate/temporary old variant (planned for removal in Phase 3A)
+- `archive/legacy-desktop-pyqt/` — Legacy PyQt6 desktop application
+- `archive/legacy-electronics/` — Legacy electronics/firmware
+- `archive/prototypes/web-colmap-backend/` — Old COLMAP/Open3D backend prototype
+- `archive/prototypes/web-react-frontend/` — Old React/Vite/Three.js prototype
+- `AntaresBitis/` — Duplicate/temporary old variant (removed in Phase 3A)
 
 ---
 
@@ -35,12 +35,12 @@ This is a **multi-project monorepo** with one **active production system** (Anta
 ### AntaresStudio IoT — Primary System
 ```bash
 # Python Backend (port 8000)
-cd AntaresStudio/AntaresStudioIoT/backend
+cd services/photogrammetry-api
 pip install -r requirements.txt
 python -m app.main          # or: python run_backend.py
 
 # Flutter Windows App
-cd AntaresStudio/AntaresStudioIoT/app
+cd apps/desktop
 flutter pub get
 flutter run -d windows      # Windows desktop target
 ```
@@ -48,13 +48,13 @@ flutter run -d windows      # Windows desktop target
 ### AntaresWeb
 ```bash
 # Static site — open index.html directly or serve with any static server
-cd AntaresWeb
+cd web/landing
 # e.g., python -m http.server 8080
 ```
 
 ### AntaresDocs
 ```bash
-cd AntaresDocs
+cd web/docs
 npm install
 npm run dev
 ```
@@ -110,11 +110,11 @@ Flutter App (Windows) ←→ ESP32-CAM (192.168.4.1:80) ←UART→ Arduino Nano
 | UART2 RX ← Arduino TX | 12 |
 | Arduino RESET | 4 |
 | SD_MMC D0/CLK/CMD | 2/14/15 |
-| Camera pins | Per `firmware_esp/firmware_esp.ino` |
+| Camera pins | Per `firmware/gateway-esp32cam/firmware_esp.ino` |
 
 ### Flutter `BackendProcessManager` — HARDWARE CONSTRAINT
 - Auto-starts Python backend on Windows via `BackendProcessManager`
-- Assumes backend executable at `../backend/run_backend.py` or `python -m app.main`
+- Assumes backend executable at `../services/photogrammetry-api/antares_backend.exe` (release) or `../../../../../services/photogrammetry-api/antares_backend.exe` (debug)
 - Do not change path assumptions without updating Flutter code
 
 ---
@@ -172,7 +172,7 @@ curl http://192.168.4.1/api/capture --output test.jpg
 
 ---
 
-## Future Repository Structure (Planned — NOT Implemented)
+## Future Repository Structure (Implemented — Phase 3B)
 
 ```text
 antareslab/
@@ -201,7 +201,7 @@ antareslab/
     └── prototypes/
 ```
 
-**Current phase**: Phase 3A — Safe Cleanup (targets: `AntaresBitis/`, `analyze_output.txt`, `analyze2.txt`, unused `*_v3` files, unused firmware snippets, `AntaresWeb/archive/`, generated/test image data, generated 3D output). **These have not been removed yet.**
+**Current phase**: Phase 3B — Repository Restructure complete. Phase 3A cleanup targets removed.
 
 ---
 
@@ -221,6 +221,6 @@ antareslab/
 
 - `yeni_implementation_plan.md` — Detailed refactoring plan (v2 architecture)
 - `implementation_plan.md` — Original web migration plan
-- `AntaresStudio/AntaresStudioIoT/README.md` — IoT system overview
-- `AntaresStudio/AntaresStudioIoT/backend/app/main.py` — Backend entrypoint with lifespan
-- `AntaresStudio/AntaresStudioIoT/app/lib/main.dart` — Flutter app entrypoint
+- `services/photogrammetry-api/README.md` — IoT system overview
+- `services/photogrammetry-api/app/main.py` — Backend entrypoint with lifespan
+- `apps/desktop/lib/main.dart` — Flutter app entrypoint

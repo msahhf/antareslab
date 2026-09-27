@@ -34,7 +34,7 @@ $ScriptDir = $PSScriptRoot
 $ProjectRoot = Split-Path -Parent $ScriptDir
 
 # Fallback: eger ScriptDir bos ise
-if (-not $ProjectRoot -or -not (Test-Path (Join-Path $ProjectRoot "app"))) {
+if (-not $ProjectRoot -or -not (Test-Path (Join-Path $ProjectRoot "apps/desktop"))) {
     $ProjectRoot = (Get-Location).Path
 }
 
@@ -43,8 +43,8 @@ $InternalDir    = Join-Path $SetupDir "internal"
 $AppOutputDir   = Join-Path $InternalDir "app"
 $BackendOutDir  = Join-Path $InternalDir "backend"
 $AssetsDir      = Join-Path $SetupDir "assets"
-$FlutterAppDir  = Join-Path $ProjectRoot "app"
-$BackendDir     = Join-Path $ProjectRoot "backend"
+$FlutterAppDir  = Join-Path $ProjectRoot "apps/desktop"
+$BackendDir     = Join-Path $ProjectRoot "services/photogrammetry-api"
 
 $AppName        = "AntaresStudio"
 $AppVersion     = "4.0.0"

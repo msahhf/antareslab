@@ -14,7 +14,7 @@ DisableProgramGroupPage=yes
 OutputDir=output
 OutputBaseFilename=AntaresStudio_Setup_v2.1.0
 SetupIconFile=assets\app.ico
-UninstallDisplayIcon={app}\app\antares_studio_iot.exe
+UninstallDisplayIcon={app}\apps\desktop\antares_studio_iot.exe
 
 ; Sıkıştırma
 Compression=lzma2/ultra64
@@ -52,32 +52,32 @@ Name: "startmenu"; Description: "Başlat menüsüne ekle"; GroupDescription: "Ek
 
 [Files]
 ; Flutter Uygulaması
-Source: "internal\app\*"; DestDir: "{app}\app"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "internal\apps\desktop\*"; DestDir: "{app}\apps\desktop"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Python Backend
-Source: "internal\backend\*"; DestDir: "{app}\backend"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "internal\services\photogrammetry-api\*"; DestDir: "{app}\services\photogrammetry-api"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Assets
 Source: "assets\app.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Dirs]
 ; Backend veri dizinleri (yazma izinli)
-Name: "{app}\backend\data"; Permissions: users-modify
-Name: "{app}\backend\data\uploads"; Permissions: users-modify
-Name: "{app}\backend\data\cleaned"; Permissions: users-modify
-Name: "{app}\backend\data\output"; Permissions: users-modify
-Name: "{app}\backend\data\models"; Permissions: users-modify
-Name: "{app}\backend\data\meshroom_cache"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data\uploads"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data\cleaned"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data\output"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data\models"; Permissions: users-modify
+Name: "{app}\services\photogrammetry-api\data\meshroom_cache"; Permissions: users-modify
 
 [Icons]
 ; Masaüstü kısayolu
-Name: "{commondesktop}\AntaresStudio"; Filename: "{app}\app\antares_studio_iot.exe"; IconFilename: "{app}\app.ico"; Tasks: desktopicon; Comment: "AntaresStudio IoT - Otonom Dijital İkiz Stüdyosu"
+Name: "{commondesktop}\AntaresStudio"; Filename: "{app}\apps\desktop\antares_studio_iot.exe"; IconFilename: "{app}\app.ico"; Tasks: desktopicon; Comment: "AntaresStudio IoT - Otonom Dijital İkiz Stüdyosu"
 ; Başlat menüsü
-Name: "{group}\AntaresStudio"; Filename: "{app}\app\antares_studio_iot.exe"; IconFilename: "{app}\app.ico"; Tasks: startmenu
+Name: "{group}\AntaresStudio"; Filename: "{app}\apps\desktop\antares_studio_iot.exe"; IconFilename: "{app}\app.ico"; Tasks: startmenu
 ; Kaldırma
 Name: "{group}\AntaresStudio Kaldır"; Filename: "{uninstallexe}"
 
 [Run]
 ; Kurulum sonrası uygulamayı başlat
-Filename: "{app}\app\antares_studio_iot.exe"; Description: "AntaresStudio'yu başlat"; Flags: nowait postinstall skipifsilent shellexec
+Filename: "{app}\apps\desktop\antares_studio_iot.exe"; Description: "AntaresStudio'yu başlat"; Flags: nowait postinstall skipifsilent shellexec
 
 [UninstallRun]
 ; Kaldırma sırasında backend'i durdur
@@ -85,7 +85,7 @@ Filename: "taskkill"; Parameters: "/F /IM antares_backend.exe"; Flags: runhidden
 
 [UninstallDelete]
 ; Kaldırma sırasında veri dizinlerini temizle (isteğe bağlı)
-Type: filesandordirs; Name: "{app}\backend\data"
+Type: filesandordirs; Name: "{app}\services\photogrammetry-api\data"
 
 [Code]
 // Kurulum başlamadan önce eski backend processleri kapat
