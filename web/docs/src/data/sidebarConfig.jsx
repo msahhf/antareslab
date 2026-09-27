@@ -1,34 +1,40 @@
-import { Globe, Box, Cpu } from "lucide-react";
+import { Globe, Code, FileText, Cpu, BookOpen } from "lucide-react";
 
 export const sidebarConfig = {
-  web: {
-    title: "Antares Web",
+  architecture: {
+    title: "Architecture",
     icon: <Globe size={20} className="text-blue-600" />,
     items: [
-      { label: "Giriş", path: "/web" },
-      { label: "Kurulum", path: "/web/installation" },
-      { label: "Deployment (Vercel)", path: "/web/deployment" },
-      { label: "API Yapısı", path: "/web/api" },
+      { label: "Overview", path: "/architecture" },
+      { label: "System Architecture", path: "/architecture/system" },
     ]
   },
-  studio: {
-    title: "Antares Studio",
-    icon: <Box size={20} className="text-orange-600" />,
+  api: {
+    title: "API Reference",
+    icon: <Code size={20} className="text-purple-600" />,
     items: [
-      { label: "Genel Bakış", path: "/studio" },
-      { label: "K1 Max Ayarları", path: "/studio/k1-settings" },
-      { label: "Filament Profilleri", path: "/studio/filaments" },
-      { label: "Hata Çözümleri", path: "/studio/troubleshoot" },
+      { label: "Overview", path: "/api" },
+      { label: "Photos API", path: "/api/photos" },
+      { label: "Pipeline API", path: "/api/pipeline" },
+      { label: "ESP32 API", path: "/api/esp32" },
+      { label: "Arduino Commands", path: "/api/arduino" },
+    ]
+  },
+  specs: {
+    title: "Specifications",
+    icon: <FileText size={20} className="text-amber-600" />,
+    items: [
+      { label: "Overview", path: "/specs" },
+      { label: "UART Protocol", path: "/specs/uart-protocol" },
+      { label: "Hardware Interface", path: "/specs/hardware-interface" },
     ]
   },
   electronics: {
-    title: "Antares Electronics",
+    title: "Electronics",
     icon: <Cpu size={20} className="text-emerald-600" />,
     items: [
-      { label: "Başlangıç", path: "/electronics" },
+      { label: "Overview", path: "/electronics" },
       { label: "ESP32 Pinout", path: "/electronics/pinout" },
-      { label: "Sensör Verileri", path: "/electronics/sensors" },
-      { label: "Haberleşme (MQTT)", path: "/electronics/mqtt" },
     ]
   }
 };

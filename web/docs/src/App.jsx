@@ -3,20 +3,17 @@ import CommandMenu from "./components/ui/CommandMenu";
 import Home from "./pages/Home";
 import DocsLayout from "./components/layout/DocsLayout";
 import Esp32Pinout from "./pages/electronics/Esp32Pinout";
-import WebDeployment from "./pages/web/WebDeployment";
-import K1MaxSettings from "./pages/studio/K1MaxSettings";
 import { SearchProvider } from "./context/SearchContext";
 
-// Örnek İçerik Sayfaları (Test için)
+// Placeholder pages for sections under construction
 const PagePlaceholder = ({ title }) => (
   <div className="prose lg:prose-xl">
     <h1 className="text-3xl font-bold text-gray-900 mb-4">{title}</h1>
     <p className="text-gray-600">
-      Buraya {title} ile ilgili detaylı dokümantasyon ve açıklamalar gelecek.
-      Markdown içerikleri veya React bileşenleri burada gösterilecek.
+      Documentation for {title} is under construction.
     </p>
     <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
-      🚧 Bu sayfa yapım aşamasındadır.
+      🚧 This page is under construction.
     </div>
   </div>
 );
@@ -28,36 +25,75 @@ function App() {
         <CommandMenu />
 
         <Routes>
-          {/* Landing Page (Layout dışında) */}
+          {/* Landing Page (outside DocsLayout) */}
           <Route path="/" element={<Home />} />
 
-          {/* Dokümantasyon Sayfaları (DocsLayout içinde) */}
+          {/* Documentation Pages (inside DocsLayout) */}
           <Route element={<DocsLayout />}>
-            {/* Antares Web Rotaları */}
+            {/* Architecture */}
             <Route
-              path="/web"
-              element={<PagePlaceholder title="Antares Web: Giriş" />}
+              path="/architecture"
+              element={<PagePlaceholder title="Architecture Overview" />}
             />
-            <Route path="/web/deployment" element={<WebDeployment />} />{" "}
-            {/* GÜNCELLENDİ */}
             <Route
-              path="/web/installation"
-              element={<PagePlaceholder title="Web Kurulumu" />}
+              path="/architecture/system"
+              element={<PagePlaceholder title="System Architecture" />}
             />
-            {/* Antares Studio Rotaları */}
+
+            {/* API Reference */}
             <Route
-              path="/studio"
-              element={<PagePlaceholder title="Antares Studio: Giriş" />}
+              path="/api"
+              element={<PagePlaceholder title="API Reference" />}
             />
-            <Route path="/studio/k1-settings" element={<K1MaxSettings />} />{" "}
-            {/* GÜNCELLENDİ */}
-            {/* Antares Electronics Rotaları */}
+            <Route
+              path="/api/photos"
+              element={<PagePlaceholder title="Photos API" />}
+            />
+            <Route
+              path="/api/pipeline"
+              element={<PagePlaceholder title="Pipeline API" />}
+            />
+            <Route
+              path="/api/esp32"
+              element={<PagePlaceholder title="ESP32 API" />}
+            />
+            <Route
+              path="/api/arduino"
+              element={<PagePlaceholder title="Arduino Commands" />}
+            />
+
+            {/* Specifications */}
+            <Route
+              path="/specs"
+              element={<PagePlaceholder title="Specifications" />}
+            />
+            <Route
+              path="/specs/uart-protocol"
+              element={<PagePlaceholder title="UART Protocol" />}
+            />
+            <Route
+              path="/specs/hardware-interface"
+              element={<PagePlaceholder title="Hardware Interface" />}
+            />
+
+            {/* Electronics (existing) */}
             <Route
               path="/electronics"
-              element={<PagePlaceholder title="Antares Electronics: Giriş" />}
+              element={<PagePlaceholder title="Electronics" />}
             />
-            <Route path="/electronics/pinout" element={<Esp32Pinout />} />{" "}
-            {/* Değişen kısım burası */}
+            <Route path="/electronics/pinout" element={<Esp32Pinout />} />
+
+            {/* Studio (placeholder) */}
+            <Route
+              path="/studio"
+              element={<PagePlaceholder title="Studio" />}
+            />
+
+            {/* Web (placeholder) */}
+            <Route
+              path="/web"
+              element={<PagePlaceholder title="Web" />}
+            />
           </Route>
         </Routes>
       </BrowserRouter>
