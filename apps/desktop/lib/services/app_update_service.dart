@@ -21,7 +21,7 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 /// Mevcut uygulama sürümü — her release'de güncellenmeli
-const String kAppVersion = '2.1.0';
+const String kAppVersion = '4.0.0';
 const String kAppBuildNumber = '1';
 
 /// Uzak sürüm bilgisi
@@ -116,7 +116,7 @@ class AppVersionInfo {
 /// Uygulama güncelleme kontrol servisi
 class AppUpdateService {
   /// GitHub repo (owner/repo)
-  static const String _githubRepo = 'ScRien/antareslab';
+  static const String _githubRepo = 'msahhf/antareslab';
 
   /// Alternatif: Uzak JSON URL (GitHub Raw veya kendi sunucunuz)
   static const String _versionJsonUrl =

@@ -54,7 +54,7 @@ class _UpdateScreenState extends State<UpdateScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final device = context.read<DeviceProvider>();
       _updateManager = UpdateManager(
-        githubRepo: 'ScRien/AntaresStudioIoT',
+        githubRepo: 'msahhf/antareslab',
         espHost: DeviceProvider.espHost,
         currentEspVersion: device.firmwareVersion,
         onProgress: _onProgressUpdate,

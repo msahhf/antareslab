@@ -36,7 +36,7 @@ Hem masaüstü kullanıcılar hem geliştiriciler için **çalışan EXE build�
 
 Hazır EXE kurulumları için GitHub Releases sayfasına göz at:
 
-👉 https://github.com/ScRien/antareslab/releases
+👉 https://github.com/msahhf/antareslab/releases
 
 ---
 
@@ -46,5 +46,5 @@ Aşağıdaki adımlar ile kendi Windows installer’ını üret, test et veya ka
 
 ### 💻 Ortam Kurulumu
 ```bash
-git clone https://github.com/ScRien/antareslab.git
+git clone https://github.com/msahhf/antareslab.git
 cd antareslab

@@ -14,7 +14,7 @@
 /// Kullanım:
 /// ```dart
 /// final manager = UpdateManager(
-///   githubRepo: 'AntaresLab/AntaresStudioIoT',
+///   githubRepo: 'msahhf/antareslab',
 ///   espHost: 'antares-scanner.local',
 /// );
 ///

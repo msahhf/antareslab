@@ -18,8 +18,8 @@ This is a **multi-project monorepo** with one **active production system** (Anta
 | **AntaresStudio IoT — Arduino Firmware** | `firmware/controller-arduino/` | Arduino/PlatformIO | Current controller |
 | **AntaresWeb** | `web/landing/` | Static HTML | Landing/product site |
 
-### Documentation (Incomplete)
-- `web/docs/` — React/Vite documentation portal; content needs cleanup
+### Documentation
+- `web/docs/` — React/Vite documentation portal
 
 ### Legacy / Prototype (Do Not Modify)
 - `archive/legacy-desktop-pyqt/` — Legacy PyQt6 desktop application
@@ -219,7 +219,6 @@ antareslab/
 
 ## References
 
-- `yeni_implementation_plan.md` — Detailed refactoring plan (v2 architecture)
 - `implementation_plan.md` — Original web migration plan
 - `services/photogrammetry-api/README.md` — IoT system overview
 - `services/photogrammetry-api/app/main.py` — Backend entrypoint with lifespan
