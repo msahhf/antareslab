@@ -31,17 +31,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 $ScriptDir = $PSScriptRoot
-$ProjectRoot = Split-Path -Parent $ScriptDir
+# Go up THREE levels: setup_prep/ -> photogrammetry-api/ -> services/ -> REPO ROOT
+$ProjectRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
 
-# Fallback: eger ScriptDir bos ise
-if (-not $ProjectRoot -or -not (Test-Path (Join-Path $ProjectRoot "apps/desktop"))) {
-    $ProjectRoot = (Get-Location).Path
-}
-
-$SetupDir       = Join-Path $ProjectRoot "setup_prep"
+$SetupDir       = Join-Path $ProjectRoot "services/photogrammetry-api/setup_prep"
 $InternalDir    = Join-Path $SetupDir "internal"
-$AppOutputDir   = Join-Path $InternalDir "app"
-$BackendOutDir  = Join-Path $InternalDir "backend"
+$AppOutputDir   = Join-Path $InternalDir "apps\desktop"
+$BackendOutDir  = Join-Path $InternalDir "services\photogrammetry-api"
 $AssetsDir      = Join-Path $SetupDir "assets"
 $FlutterAppDir  = Join-Path $ProjectRoot "apps/desktop"
 $BackendDir     = Join-Path $ProjectRoot "services/photogrammetry-api"
@@ -227,10 +223,12 @@ if (-not $SkipBackend) {
         cmd.exe /c "pip install -r requirements.txt" 2>&1 | Out-Null
         Write-OK "Bagimliliklar kontrol edildi"
         
-        # PyInstaller calistir
+        # PyInstaller calistir — run_backend.py'yi entry point olarak kullan
+        # static klasoru icin --add-data kullan (Windows: SOURCE;DEST)
         Write-Info "PyInstaller baslatiliyor..."
-        cmd.exe /c "python -m PyInstaller antares_backend.spec --noconfirm --clean" 2>&1 | ForEach-Object { 
-            Write-Host "    $_" -ForegroundColor DarkGray 
+        $addData = "--add-data=app/static;app/static"
+        cmd.exe /c "python -m PyInstaller run_backend.py --name antares_backend --onefile $addData --noconfirm --clean" 2>&1 | ForEach-Object {
+            Write-Host "    $_" -ForegroundColor DarkGray
         }
         
         if ($LASTEXITCODE -ne 0) {
@@ -240,11 +238,11 @@ if (-not $SkipBackend) {
             exit 1
         }
         
-        # dist ciktisini setup_prep'e kopyala
-        $distDir = Join-Path $BackendDir "dist\antares_backend"
-        if (Test-Path $distDir) {
+        # dist ciktisini setup_prep'e kopyala (--onefile ciktisi: dist/antares_backend.exe)
+        $distExe = Join-Path $BackendDir "dist\$BackendExeName"
+        if (Test-Path $distExe) {
             Write-Info "Backend ciktisi kopyalaniyor..."
-            Copy-Item -Path (Join-Path $distDir "*") -Destination $BackendOutDir -Recurse -Force
+            Copy-Item -Path $distExe -Destination $BackendOutDir -Force
             
             $backendExePath = Join-Path $BackendOutDir $BackendExeName
             if (Test-Path $backendExePath) {
@@ -252,7 +250,7 @@ if (-not $SkipBackend) {
                 Write-OK "Backend build OK: $BackendExeName ($sizeMB MB)"
             }
         } else {
-            Write-Err "PyInstaller dist dizini bulunamadi!"
+            Write-Err "PyInstaller cikti dosyasi bulunamadi: $distExe"
         }
         
         # PyInstaller gecici dosyalarini temizle
@@ -277,14 +275,13 @@ if (-not $SkipBackend) {
 
 Write-Step "3/4 - Assets Hazirlaniyor"
 
-# Lisans dosyasi
-$licensePath = Join-Path $AssetsDir "LICENSE.txt"
-if (Test-Path $licensePath) {
-    Write-OK "LICENSE.txt mevcut"
+# Lisans dosyasi - REPO ROOT'TAKI LICENSE KULLANILIYOR (Apache-2.0)
+# setup_prep/assets altinda ayri bir LICENSE.txt OLUSTURMAYALIM
+$repoLicense = Join-Path $ProjectRoot "LICENSE"
+if (Test-Path $repoLicense) {
+    Write-OK "Repo LICENSE mevcut (Apache-2.0): $repoLicense"
 } else {
-    Write-Warn "LICENSE.txt bulunamadi, olusturuluyor..."
-    Set-Content -Path $licensePath -Value "AntaresStudio IoT v$AppVersion - Tum haklari saklidir." -Encoding UTF8
-    Write-OK "LICENSE.txt olusturuldu"
+    Write-Warn "Repo LICENSE bulunamadi: $repoLicense"
 }
 
 # Icon kontrolu

@@ -29,8 +29,8 @@ class BackendProcessManager {
     // Backend konumu:     .../services/photogrammetry-api/antares_backend.exe
     final exeDir = File(Platform.resolvedExecutable).parent.path;
 
-    // Release kurulum yapısı: exe apps/desktop/ altında, backend ../services/photogrammetry-api/ altında
-    final backendPath = '$exeDir\\..\\services\\photogrammetry-api\\antares_backend.exe';
+    // Release kurulum yapısı: exe apps/desktop/ altında, backend ../../services/photogrammetry-api/ altında
+    final backendPath = '$exeDir\\..\\..\\services\\photogrammetry-api\\antares_backend.exe';
     final normalizedPath = File(backendPath).absolute.path;
 
     // Geliştirme ortamında doğrudan backend dizini kontrol

@@ -39,6 +39,10 @@ AntaresStudio/installer/
 AntaresStudio/build_base_work/
 *.spec
 
+# AntaresStudio IoT packaging artifacts
+services/photogrammetry-api/setup_prep/internal/
+services/photogrammetry-api/setup_prep/output/
+
 # ===============================
 # External Tools & Binaries
 # ===============================

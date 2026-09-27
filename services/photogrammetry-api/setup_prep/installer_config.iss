@@ -12,7 +12,7 @@ DisableProgramGroupPage=yes
 
 ; Çıktı
 OutputDir=output
-OutputBaseFilename=AntaresStudio_Setup_v2.1.0
+OutputBaseFilename=AntaresStudio_Setup_v4.0.0
 SetupIconFile=assets\app.ico
 UninstallDisplayIcon={app}\apps\desktop\antares_studio_iot.exe
 
@@ -34,7 +34,7 @@ DisableWelcomePage=no
 ShowLanguageDialog=auto
 
 ; Lisans
-LicenseFile=..\..\LICENSE
+LicenseFile=..\..\..\LICENSE
 
 ; Windows sürüm gereksinimleri
 MinVersion=10.0
