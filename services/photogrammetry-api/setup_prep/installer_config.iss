@@ -1,8 +1,8 @@
 [Setup]
 ; Uygulama Bilgileri
 AppName=AntaresStudio IoT
-AppVersion=2.1.0
-AppVerName=AntaresStudio IoT v2.1.0
+AppVersion=4.0.0
+AppVerName=AntaresStudio IoT v4.0.0
 AppPublisher=Antares Laboratory
 AppPublisherURL=https://github.com/ScRien/antareslab
 AppSupportURL=https://github.com/ScRien/antareslab/issues
